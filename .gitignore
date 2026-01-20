@@ -1,0 +1,9 @@
+# runtime secrets created by users
+conf/recursive.env
+logstash/logstash.env
+logstash/certs/*.key
+logstash/certs/*.pem
+
+# runtime state
+var/
+cases/
