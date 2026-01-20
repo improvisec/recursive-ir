@@ -1,0 +1,16 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+[Unit]
+Description=Run Recursive-IR enrich projection periodically (all cases)
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+Unit=dfir-enrich-project.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

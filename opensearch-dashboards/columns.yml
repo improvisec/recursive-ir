@@ -1,0 +1,127 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+# Global defaults that apply everywhere.
+global:
+  default_columns:
+    - timestamp_desc
+
+    # Australian + NZ Timezones
+    - timestamp_AEST
+    - timestamp_AEDT
+    - timestamp_ACST
+    - timestamp_ACDT
+    - timestamp_AWST
+    - timestamp_NZST
+    - timestamp_NZDT
+
+    # North America
+    - timestamp_EST
+    - timestamp_EDT
+    - timestamp_CST
+    - timestamp_CDT
+    - timestamp_MST
+    - timestamp_MDT
+    - timestamp_PST
+    - timestamp_PDT
+    - timestamp_AKST
+    - timestamp_AKDT
+    - timestamp_HST
+
+    # Europe
+    - timestamp_WET
+    - timestamp_WEST
+    - timestamp_BST
+    - timestamp_CET
+    - timestamp_CEST
+    - timestamp_EET
+    - timestamp_EEST
+    - timestamp_MSK
+
+    # Asia / Middle East
+    - timestamp_IST
+    - timestamp_PKT
+    - timestamp_WIB
+    - timestamp_WITA
+    - timestamp_WIT
+    - timestamp_JST
+    - timestamp_KST
+    - timestamp_HKT
+    - timestamp_SGT
+    - timestamp_PHT
+
+    # Must keep source_type for filtering
+    - source_type
+
+    # Manifests
+    - manifest_type
+    - artefact_type
+    - file_path
+
+    # Ingestion-error
+    - dlq.error_type
+    - dlq.error_field
+    - dlq.error_message
+
+# ------------------------------------------------------------------
+# Auto-generated columns config by "dfir parser new"
+#
+# This section controls the default columns shown in OpenSearch
+# Dashboards when viewing events whose source_type-* is indicated below.
+#
+# Users can edit default_columns to add/remove fields they care about.
+# Only columns or fields that actually exist in the index pattern will appear in
+# Discover; others are dropped by OpenSearch Dashboards.
+#
+types:
+
+  evtxjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for evtxjson-*.
+    default_columns: 
+      - tags
+      - event.comments.last
+      - Event.System.Computer
+      - Event.System.Channel
+      - Event.System.Provider
+      - Event.System.EventID
+
+  hayabusajson:
+    # Columns listed here become the initial set of columns in Discover
+    # for hayabusajson-*.
+    default_columns: 
+      - tags
+      - event.comments.last
+      - Computer
+      - Level
+      - RuleTitle
+
+  mftjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for mftjson-*.
+    default_columns: 
+      - tags
+      - event.comments.last
+      - File_Name
+      - Parent_Dir
+      - Full_Path
+      - is_deleted
+      - is_dir
+      - entry_type
+
+  plasojson:
+    # Columns listed here become the initial set of columns in Discover
+    # for plasojson-*.
+    default_columns: 
+      - tags
+      - event.comments.last
+      - parser
+      - message 
+
+  json-arrayjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for json-arrayjson-*.
+    default_columns: []
+

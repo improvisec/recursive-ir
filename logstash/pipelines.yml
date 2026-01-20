@@ -1,0 +1,27 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+#
+# Auto-generated. Manual edits may be overwritten.
+# ------------------------------------------------------------------
+- pipeline.id: ingest-router
+  path.config: /etc/recursive-ir/logstash/pipelines/000-router.conf
+- pipeline.id: manifest
+  path.config: /etc/recursive-ir/logstash/pipelines/001-manifest.conf
+- pipeline.id: ingestion-error
+  path.config: /etc/recursive-ir/logstash/pipelines/998-ingestion-error.conf
+- pipeline.id: output
+  path.config: /etc/recursive-ir/logstash/pipelines/999-output.conf
+- pipeline.id: evtxjson
+  path.config: /etc/recursive-ir/logstash/pipelines/100-evtxjson.conf
+- pipeline.id: hayabusajson
+  path.config: /etc/recursive-ir/logstash/pipelines/101-hayabusajson.conf
+- pipeline.id: mftjson
+  path.config: /etc/recursive-ir/logstash/pipelines/102-mftjson.conf
+- pipeline.id: plasojson
+  path.config: /etc/recursive-ir/logstash/pipelines/103-plasojson.conf
+- pipeline.id: dissect-evtxjson
+  path.config: /etc/recursive-ir/logstash/pipelines/104-dissect-evtxjson.conf
+- pipeline.id: json-arrayjson
+  path.config: /etc/recursive-ir/logstash/pipelines/105-json-arrayjson.conf

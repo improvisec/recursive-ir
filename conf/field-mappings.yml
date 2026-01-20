@@ -1,0 +1,382 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+#
+# Each top-level key corresponds to an index pattern name,
+# e.g. evtxjson, mftjson, hayabusajson, dissect_evtxjson.
+# Sections under each key rename/copy/drop/derive/set_if_present/stringify/store_only
+# shall control the behavior in the Logstash field-mappings logic.
+
+# ----------------------------------------------------------------
+# <source_type> (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+  # rename:
+  #   # MOVE a field from one name to another (source → target)
+  #   # src_ip: source.ip
+  # copy:
+  #   # DUPLICATE a field into one or more targets
+  #   # event_id: [ event.code, pattern.event_id ]
+  # set_if_present:
+  #   # Only copy when source field exists and is non-empty
+  #   # username: [ user.name ]
+  # drop:
+  #   # List fields to remove entirely
+  #   # - pattern.raw_message
+  # derive:
+  #   # Derive the base name or parent paths from a given field. Useful you want to filter by parent path or file name when searching for events.
+  #   # Operator → input fields. Example (basename/parentdirs helpers):
+  #   # The example below will produce file.parent1, file.parent2, file.parent3 from file.path as well as the file name (e.g., C:\Users\Public\malware.exe will result in file.name: malware.exe)
+  #   # basename:
+  #   #   - file.path
+  #   # parentdirs:
+  #   #   - file.path
+  # stringify:
+  #   # Fields forced to STRING in the generic sanitizer
+  #   # - pattern.raw_payload
+  # store_only:
+  # Blobify oversized string fields safely. Replaces dot with an underscore in the dot.path.
+  # When a field exceeds max_bytes, we create:
+  #   - event.blob_preview["<dot.path>"] : first preview_bytes (searchable as the default query field (i.e., search any string without specifying the field in Discover))
+  #   - event.blob_hash["<dot.path>"]    : sha256 of the full value (for correlation)
+  # We also preserve the full value under:
+  #   - event.blobs["<dot.path>"]        : full content stored in _source only (not indexed)
+  # NOTE: "event.original" is NOT moved into event.blobs; it stays in place
+  #       and is mapped as index:false in ecs-component (ECS Indexed=false).
+  #
+    # max_bytes: act only if value exceeds this size (bytes)
+    # preview_bytes: how much to keep in event.blob_preview (bytes)
+    # add_sha256: add event.blob_hash["<dot.path>"]
+    # fields: list of dot-path fields to apply this policy to
+    # Example:
+    #   fields:
+    #     - event.original
+    #     - Details.ScriptBlock
+    # Resulting fields:
+    #   event.blob_preview["event_original"]
+    #   event.blob_hash["event_original"]
+    #   event.blob_preview["Details_ScriptBlock"]
+    #   event.blob_hash["Details_ScriptBlock"]
+    #   event.blobs["Details_ScriptBlock"]        (full, _source-only)
+
+evtxjson:
+  # ----------------------------------------------------------
+  # evtx_dump to ECS + official Winlogbeat mirrors (System + EventData)
+  # ----------------------------------------------------------
+  copy:
+    # ---------- System → ECS + winlog.system + flattened winlog ----------
+    Event.System.Provider.#attributes.Name : [ event.provider, winlog.system.Provider.#attributes.Name, winlog.provider_name ]
+    Event.System.EventRecordID             : [ event.sequence, winlog.system.EventRecordID, winlog.record_id ]
+    Event.System.Computer                  : [ host.name,      winlog.system.Computer,      winlog.computer_name, winlog.computerObject.name ]
+    Event.System.Channel                   : [                 winlog.system.Channel,       winlog.channel ]
+    Event.System.EventID                   : [ event.code,     winlog.system.EventID,       winlog.event_id ]
+    Event.System.Level                     : [ event.severity, winlog.system.Level,         winlog.level ]
+    Event.System.Task                      : [ labels.winlog_task,   winlog.system.Task,    winlog.task ]
+    Event.System.Opcode                    : [ labels.winlog_opcode, winlog.system.Opcode,  winlog.opcode ]
+    Event.System.Version                   : [ labels.winlog_version,winlog.system.Version, winlog.version ]
+    Event.System.Keywords                  : [                   winlog.system.Keywords,     winlog.keywords ]
+
+    # Execution (not flattened by Winlogbeat; map to ECS only)
+    Event.System.Execution.#attributes.ProcessID : [ process.pid ]
+    Event.System.Execution.#attributes.ThreadID  : [ process.thread.id ]
+
+    # ---------- EventData → ECS + winlog.event_data ----------
+    Event.EventData.CommandLine         : [ process.command_line,             winlog.event_data.CommandLine ]
+    Event.EventData.ProcessId           : [ process.pid,                      winlog.event_data.ProcessId ]
+    Event.EventData.ParentProcessId     : [ process.parent.pid,               winlog.event_data.ParentProcessId ]
+    Event.EventData.ParentProcessName   : [ process.parent.executable,        winlog.event_data.ParentProcessName ]
+    Event.EventData.ParentCommandLine   : [ process.parent.command_line,      winlog.event_data.ParentCommandLine ]
+    Event.EventData.Image               : [ process.executable,               winlog.event_data.Image ]
+    Event.EventData.ImageLoaded         : [ dll.path,                         winlog.event_data.ImageLoaded ]
+    Event.EventData.Hash                : [ file.hash.sha256,                 winlog.event_data.Hash ]
+    Event.EventData.ObjectName          : [ file.path,                        winlog.event_data.ObjectName ]
+    Event.EventData.TargetFilename      : [ file.path,                        winlog.event_data.TargetFilename ]
+    Event.EventData.TargetObject        : [ registry.path,                    winlog.event_data.TargetObject ]
+    Event.EventData.Details             : [ registry.data.strings,            winlog.event_data.Details ]
+
+    # Network
+    Event.EventData.SourceHostname      : [ source.domain,                    winlog.event_data.SourceHostname ]
+    Event.EventData.SourceIp            : [ source.ip,                        winlog.event_data.SourceIp ]
+    Event.EventData.SourcePort          : [ source.port,                      winlog.event_data.SourcePort ]
+    Event.EventData.IpAddress           : [ source.ip,                        winlog.event_data.IpAddress ]
+    Event.EventData.IpPort              : [ source.port,                      winlog.event_data.IpPort ]
+    Event.EventData.DestAddress         : [ destination.ip,                   winlog.event_data.DestAddress ]
+    Event.EventData.DestinationHostname : [ destination.domain,               winlog.event_data.DestinationHostname ]
+    Event.EventData.DestinationIp       : [ destination.ip,                   winlog.event_data.DestinationIp ]
+    Event.EventData.DestinationPort     : [ destination.port,                 winlog.event_data.DestinationPort ]
+    Event.EventData.DestPort            : [ destination.port,                 winlog.event_data.DestPort ]
+    Event.EventData.Protocol            : [ network.transport,                winlog.event_data.Protocol ]
+
+    # Identity / Accounts
+    Event.EventData.User                : [ user.name,                        winlog.event_data.User, winlog.user.name ]
+    Event.EventData.SubjectUserName     : [ user.effective.name,              winlog.event_data.SubjectUserName ]
+    Event.EventData.SubjectDomainName   : [ user.effective.domain,            winlog.event_data.SubjectDomainName ]
+    Event.EventData.SubjectUserSid      : [ user.effective.id,                winlog.event_data.SubjectUserSid ]
+    Event.EventData.TargetUserName      : [ user.name,                        winlog.event_data.TargetUserName ]
+    Event.EventData.TargetDomainName    : [ user.domain,                      winlog.event_data.TargetDomainName ]
+    Event.EventData.TargetUserSid       : [ user.id,                          winlog.event_data.TargetUserSid ]
+    Event.EventData.TargetLogonId       : [ session.id,                       winlog.event_data.TargetLogonId ]
+    Event.EventData.WorkstationName     : [ source.domain,                    winlog.event_data.WorkstationName ]
+    Event.EventData.AccountName         : [ service.account,                  winlog.event_data.AccountName ]
+
+    # Services (some targets aren’t “strict ECS”, but you’ve used them consistently)
+    Event.EventData.ServiceName         : [ service.name,                     winlog.event_data.ServiceName ]
+    Event.EventData.ServiceType         : [ service.type,                     winlog.event_data.ServiceType ]
+    Event.EventData.ServiceFileName     : [ service.executable,               winlog.event_data.ServiceFileName ]
+    Event.EventData.StartType           : [ service.startup_type,             winlog.event_data.StartType ]
+
+    # Misc / Sysmon-y extras
+    Event.EventData.IntegrityLevel      : [ labels.integrity_level,           winlog.event_data.IntegrityLevel ]
+      
+    # ---------- Additional EventData → winlog.event_data for SA (standby) ----------
+
+    Event.EventData.AccessList                  : [ winlog.event_data.AccessList ]
+    Event.EventData.AccessMask                  : [ winlog.event_data.AccessMask ]
+    Event.EventData.Accesses                    : [ winlog.event_data.Accesses ]
+    Event.EventData.Action                      : [ winlog.event_data.Action ]
+    Event.EventData.Address                     : [ winlog.event_data.Address ]
+    Event.EventData.AllowedToDelegateTo         : [ winlog.event_data.AllowedToDelegateTo ]
+    Event.EventData.Application                 : [ winlog.event_data.Application ]
+    Event.EventData.ApplicationPath             : [ winlog.event_data.ApplicationPath ]
+    Event.EventData.AttributeLDAPDisplayName    : [ winlog.event_data.AttributeLDAPDisplayName ]
+    Event.EventData.AttributeValue              : [ winlog.event_data.AttributeValue ]
+    Event.EventData.AuditPolicyChanges          : [ winlog.event_data.AuditPolicyChanges ]
+    Event.EventData.AuditSourceName             : [ winlog.event_data.AuditSourceName ]
+    Event.EventData.AuthenticationPackageName   : [ winlog.event_data.AuthenticationPackageName ]
+    Event.EventData.CallTrace                   : [ winlog.event_data.CallTrace ]
+    Event.EventData.CallerProcessName           : [ winlog.event_data.CallerProcessName ]
+    Event.EventData.Caption                     : [ winlog.event_data.Caption ]
+    Event.EventData.CertThumbprint              : [ winlog.event_data.CertThumbprint ]
+    Event.EventData.ClassName                   : [ winlog.event_data.ClassName ]
+    Event.EventData.Commandline                 : [ winlog.event_data.Commandline ]
+    Event.EventData.Company                     : [ winlog.event_data.Company ]
+    Event.EventData.ContextInfo                 : [ winlog.event_data.ContextInfo ]
+    Event.EventData.CurrentDirectory            : [ winlog.event_data.CurrentDirectory ]
+    Event.EventData.Description                 : [ winlog.event_data.Description ]
+    Event.EventData.Destination                 : [ winlog.event_data.Destination ]
+    Event.EventData.DestinationIsIpv6           : [ winlog.event_data.DestinationIsIpv6 ]
+    Event.EventData.Detail                      : [ winlog.event_data.Detail ]
+    Event.EventData.Device                      : [ winlog.event_data.Device ]
+    Event.EventData.DeviceDescription           : [ winlog.event_data.DeviceDescription ]
+    Event.EventData.DeviceName                  : [ winlog.event_data.DeviceName ]
+    Event.EventData.EngineVersion               : [ winlog.event_data.EngineVersion ]
+    Event.EventData.ErrorCode                   : [ winlog.event_data.ErrorCode ]
+    Event.EventData.EventType                   : [ winlog.event_data.EventType ]
+    Event.EventData.FailureCode                 : [ winlog.event_data.FailureCode ]
+    Event.EventData.FileName                    : [ winlog.event_data.FileName ]
+    Event.EventData.FileVersion                 : [ winlog.event_data.FileVersion ]
+    Event.EventData.GrantedAccess               : [ winlog.event_data.GrantedAccess ]
+    Event.EventData.Hashes                      : [ winlog.event_data.Hashes ]
+    Event.EventData.HiveName                    : [ winlog.event_data.HiveName ]
+    Event.EventData.HostApplication             : [ winlog.event_data.HostApplication ]
+    Event.EventData.HostVersion                 : [ winlog.event_data.HostVersion ]
+    Event.EventData.ImageFileName               : [ winlog.event_data.ImageFileName ]
+    Event.EventData.ImagePath                   : [ winlog.event_data.ImagePath ]
+    Event.EventData.Imphash                     : [ winlog.event_data.Imphash ]
+    Event.EventData.Initiated                   : [ winlog.event_data.Initiated ]
+    Event.EventData.KeyLength                   : [ winlog.event_data.KeyLength ]
+    Event.EventData.LayerRTID                   : [ winlog.event_data.LayerRTID ]
+    Event.EventData.Level                       : [ winlog.event_data.Level ]
+    Event.EventData.LocalName                   : [ winlog.event_data.LocalName ]
+    Event.EventData.LogonId                     : [ winlog.event_data.LogonId ]
+    Event.EventData.LogonProcessName            : [ winlog.event_data.LogonProcessName ]
+    Event.EventData.LogonType                   : [ winlog.event_data.LogonType ]
+    Event.EventData.ModifyingApplication        : [ winlog.event_data.ModifyingApplication ]
+    Event.EventData.NewName                     : [ winlog.event_data.NewName ]
+    Event.EventData.NewTargetUserName           : [ winlog.event_data.NewTargetUserName ]
+    Event.EventData.NewTemplateContent          : [ winlog.event_data.NewTemplateContent ]
+    Event.EventData.NewUacValue                 : [ winlog.event_data.NewUacValue ]
+    Event.EventData.NewValue                    : [ winlog.event_data.NewValue ]
+    Event.EventData.ObjectClass                 : [ winlog.event_data.ObjectClass ]
+    Event.EventData.ObjectServer                : [ winlog.event_data.ObjectServer ]
+    Event.EventData.ObjectType                  : [ winlog.event_data.ObjectType ]
+    Event.EventData.ObjectValueName             : [ winlog.event_data.ObjectValueName ]
+    Event.EventData.OldTargetUserName           : [ winlog.event_data.OldTargetUserName ]
+    Event.EventData.OldUacValue                 : [ winlog.event_data.OldUacValue ]
+    Event.EventData.Origin                      : [ winlog.event_data.Origin ]
+    Event.EventData.OriginalFileName            : [ winlog.event_data.OriginalFileName ]
+    Event.EventData.OriginalName                : [ winlog.event_data.OriginalName ]
+    Event.EventData.ParentImage                 : [ winlog.event_data.ParentImage ]
+    Event.EventData.ParentUser                  : [ winlog.event_data.ParentUser ]
+    Event.EventData.PasswordLastSet             : [ winlog.event_data.PasswordLastSet ]
+    Event.EventData.Path                        : [ winlog.event_data.Path ]
+    Event.EventData.Payload                     : [ winlog.event_data.Payload ]
+    Event.EventData.PipeName                    : [ winlog.event_data.PipeName ]
+    Event.EventData.PossibleCause               : [ winlog.event_data.PossibleCause ]
+    Event.EventData.PrivilegeList               : [ winlog.event_data.PrivilegeList ]
+    Event.EventData.ProcessName                 : [ winlog.event_data.ProcessName ]
+    Event.EventData.ProcessPath                 : [ winlog.event_data.ProcessPath ]
+    Event.EventData.Product                     : [ winlog.event_data.Product ]
+    Event.EventData.Properties                  : [ winlog.event_data.Properties ]
+    Event.EventData.QNAME                       : [ winlog.event_data.QNAME ]
+    Event.EventData.Query                       : [ winlog.event_data.Query ]
+    Event.EventData.QueryName                   : [ winlog.event_data.QueryName ]
+    Event.EventData.QueryResults                : [ winlog.event_data.QueryResults ]
+    Event.EventData.QueryStatus                 : [ winlog.event_data.QueryStatus ]
+    Event.EventData.RelativeTargetName          : [ winlog.event_data.RelativeTargetName ]
+    Event.EventData.RemoteAddress               : [ winlog.event_data.RemoteAddress ]
+    Event.EventData.RemoteName                  : [ winlog.event_data.RemoteName ]
+    Event.EventData.SamAccountName              : [ winlog.event_data.SamAccountName ]
+    Event.EventData.ScriptBlockText             : [ winlog.event_data.ScriptBlockText ]
+    Event.EventData.SearchFilter                : [ winlog.event_data.SearchFilter ]
+    Event.EventData.ServicePrincipalNames       : [ winlog.event_data.ServicePrincipalNames ]
+    Event.EventData.ServiceStartType            : [ winlog.event_data.ServiceStartType ]
+    Event.EventData.ShareName                   : [ winlog.event_data.ShareName ]
+    Event.EventData.SidHistory                  : [ winlog.event_data.SidHistory ]
+    Event.EventData.Signed                      : [ winlog.event_data.Signed ]
+    Event.EventData.SourceImage                 : [ winlog.event_data.SourceImage ]
+    Event.EventData.Source_Name                 : [ winlog.event_data.Source_Name ]
+    Event.EventData.StartAddress                : [ winlog.event_data.StartAddress ]
+    Event.EventData.StartFunction               : [ winlog.event_data.StartFunction ]
+    Event.EventData.StartModule                 : [ winlog.event_data.StartModule ]
+    Event.EventData.State                       : [ winlog.event_data.State ]
+    Event.EventData.Status                      : [ winlog.event_data.Status ]
+    Event.EventData.SubjectLogonId              : [ winlog.event_data.SubjectLogonId ]
+    Event.EventData.TargetImage                 : [ winlog.event_data.TargetImage ]
+    Event.EventData.TargetParentProcessId       : [ winlog.event_data.TargetParentProcessId ]
+    Event.EventData.TargetPort                  : [ winlog.event_data.TargetPort ]
+    Event.EventData.TargetServerName            : [ winlog.event_data.TargetServerName ]
+    Event.EventData.TargetSid                   : [ winlog.event_data.TargetSid ]
+    Event.EventData.TemplateContent             : [ winlog.event_data.TemplateContent ]
+    Event.EventData.TicketEncryptionType        : [ winlog.event_data.TicketEncryptionType ]
+    Event.EventData.TicketOptions               : [ winlog.event_data.TicketOptions ]
+    Event.EventData.Value                       : [ winlog.event_data.Value ]
+    Event.EventData.Workstation                 : [ winlog.event_data.Workstation ]
+    Event.EventData.param1                      : [ winlog.event_data.param1 ]
+    Event.EventData.param2                      : [ winlog.event_data.param2 ]
+
+
+  rename: {}
+  set_if_present:
+    Event.System.Channel:
+      "windows.%{[Event][System][Channel]}" : event.dataset
+      "windows"                            : event.module
+  drop: []
+  derive: {}
+  stringify:
+    - Details.Type                 # e.g., "3 - Network" -> keep as string, add Details.Type_num=3
+    - ExtraFieldInfo.ProcessId     # e.g., "0x2cc" -> keep as string; add ExtraFieldInfo.ProcessId_num=716 if < 100
+    - Event.EventData.LogonGuid    # GUID-like: always keep string
+    - Event.EventData.SecurityId   # SIDs must remain strings
+    - winlog.keywords              # large bitmask; keep string to avoid long overflow
+    - Event.System.Keywords        
+    - Event.UserData.ServiceShutdown
+    - Event.UserData.AuditEventsDropped
+    - Event.UserData.LogFileCleared
+    - Event.EventData.Data
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192 
+    add_sha256: true
+    fields:
+      - Details.ScriptBlock
+      - event.original
+# ----------------------------------------------------------------
+# Hayabusa
+# ----------------------------------------------------------------
+hayabusajson:
+  rename: {}
+  copy: 
+    Details.SrcIP        : source.ip 
+  set_if_present: {} 
+  drop: []
+  derive: {}
+  stringify: 
+    - ExtraFieldInfo.Binary
+    - ExtraFieldInfo.Data
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192 
+    add_sha256: true
+    fields:
+      - event.original
+      - Details.ScriptBlock
+
+# ----------------------------------------------------------------
+# MFT JSON (mft_dump -> dfir)
+# ----------------------------------------------------------------
+mftjson:
+  rename:
+    path                 : file.path
+    size                 : file.size
+    frn                  : file.inode
+    timestamps.crtime    : file.created
+    timestamps.mtime     : file.mtime
+    timestamps.atime     : file.accessed
+    timestamps.ctime     : file.ctime
+    source               : event.provider
+  copy: 
+    file.directory    : [ Parent_Dir ]
+    file.path         : [ Full_Path ]
+    file.name         : [ File_Name ]
+  set_if_present: {} 
+  drop: []
+  derive:
+    # derive file.name from file.path 
+    basename:
+      - file.path
+    parentdirs:
+      - file.path
+      - ExtraFieldInfo.Path
+  stringify: []
+
+
+# ----------------------------------------------------------------
+# Plaso JSON (psteal.py) 
+# ----------------------------------------------------------------
+plasojson:
+  rename:
+    url: plaso_url
+  copy: {}
+  set_if_present: {} 
+  drop: []
+  derive: {}
+  stringify: 
+    - plaso_url
+    - file_reference
+    - strings
+
+# ----------------------------------------------------------------
+# dissect
+# ----------------------------------------------------------------
+dissect-evtxjson:
+  rename:
+    _source:  dissect__source
+    source:   dissect_source
+    _type:    dissect_type
+    _version: dissect_version
+
+    # Dissect / EVTX-specific internals / payload
+    _recorddescriptor: dissect_recorddescriptor
+    Event:             dissect_event_code
+    error:             dissect_error_code
+    url:               dissect_url
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive: {}
+  # Force everything that could be non-scalar into a string
+  stringify:
+    - dissect_recorddescriptor
+    - dissect_event_code
+    - dissect_error_code
+    - dissect_url
+
+
+
+# ----------------------------------------------------------------
+# json-arrayjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+json-arrayjson:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive: {}
+  stringify: []
+  store_only:
+    max_bytes: 8196
+    preview_bytes: 8196
+    add_sha256: true
+    fields: []

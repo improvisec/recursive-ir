@@ -1,0 +1,60 @@
+{
+  "index_patterns": [
+    "case-manifest-*",
+    "host-manifest-*",
+    "artefacts-manifest-*"
+  ],
+  "priority": 300,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 0,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "true",
+      "properties": {
+        "@timestamp": { "type": "date" },
+
+        "manifest_type": { "type": "keyword" },
+        "source_type":   { "type": "keyword" },
+        "case_id":       { "type": "keyword" },
+
+        "customer_id":   { "type": "keyword" },
+        "customer_name": { "type": "keyword" },
+
+        "host_id":       { "type": "keyword" },
+
+        "log": {
+          "properties": {
+            "file": {
+              "properties": {
+                "path": { "type": "keyword", "ignore_above": 4096 }
+              }
+            }
+          }
+        },
+
+        "timezones": { "type": "keyword" },
+        "hostname": { "type": "keyword" },
+        "os":       { "type": "keyword" },
+        "ips":      { "type": "ip" },
+        "relative_path": { "type": "keyword", "ignore_above": 4096 },
+        "size_bytes":    { "type": "long" },
+        "sha256":        { "type": "keyword" }
+      }
+    },
+    "aliases": {
+      "all": {}
+    }
+  },
+  "_meta": { 
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "description": "Unified manifests (case/host/artefacts) with base settings/mappings inlined" 
+  },
+  "version": 1
+}
+

@@ -1,0 +1,72 @@
+Recursive-IR License
+
+1. Definitions
+
+For the purposes of this license:
+
+“Recursive-IR” or “the Software” refers to the Recursive-IR orchestration software provided by the author, including the executable binary and any author-provided scripts or tooling whose primary purpose is to coordinate ingestion, parsing, normalisation, enrichment, and analytics workflows.
+
+“Third-Party Components” refers to external software that may be used alongside the Software, including but not limited to OpenSearch, OpenSearch Dashboards, Filebeat, Logstash, Beats, and other dependencies. Third-Party Components are not part of the Software, are distributed separately, and remain subject to their own licenses.
+
+“Configuration Files” refers to author-provided and Software-generated configuration artefacts used by or deployed alongside the Software, including but not limited to YAML configuration files, Filebeat input definitions (default or dynamically generated), parsing pipelines, ingest pipelines, field mappings, index templates, component templates, mapping templates, and example configurations. Configuration Files do not include the Recursive-IR orchestration executable.
+
+“Author-Provided Data Files” refers to data artefacts distributed with or alongside the Software, including but not limited to Recursive-IR–provided ASN, country, or enrichment databases (such as MaxMind-compatible MMDB files) created and maintained by the author. Author-Provided Data Files do not include User Data and are not derived from user-supplied logs or forensic artefacts.
+
+“User Data” refers to all logs, forensic artefacts, evidence, metadata, analysis outputs, and other data supplied by the user or generated from user-supplied inputs through use of the Software, including enrichment databases stored in LMDB (such as tags, comments, annotations, projections, and related metadata).
+
+⸻
+
+2. Grant of Use
+
+Subject to the terms of this license, you may use the Software for digital forensics and incident response (DFIR) investigations, research, training, and professional consulting engagements.
+
+You may use the Software internally and as part of forensic or incident response services provided to clients.
+
+⸻
+
+3. Restrictions
+
+You may not, except with prior written permission from the author, do any of the following:
+	•	Redistribute the Software
+	•	Offer the Software as a hosted service, managed service, or software-as-a-service (SaaS)
+	•	Provide third parties with direct interactive access to the Software
+	•	Rebrand, bundle, or market the Software as a standalone product or platform
+
+⸻
+
+4. Configuration Files
+
+You may modify, extend, and adapt Configuration Files for use with the Software.
+
+You may share Configuration Files independently of the Software, provided they do not include or redistribute the Software itself.
+
+Unless explicitly authorised by the author, Configuration Files may not be used as part of a competing commercial product, hosted service, or managed offering.
+
+⸻
+
+5. Author-Provided Data Files
+
+You may use Author-Provided Data Files solely in connection with the Software.
+
+Unless explicitly authorised by the author, Author-Provided Data Files may not be redistributed independently of the Software or used as part of a competing commercial product, hosted service, or managed offering.
+
+⸻
+
+6. User Data
+
+All User Data remains the property of its respective owners.
+
+The author makes no claim of ownership over User Data processed, stored, or generated through use of the Software.
+
+Responsibility for the handling, retention, protection, and lawful use of User Data remains solely with the user.
+
+⸻
+
+7. Distribution, Third-Party Components, and Warranty
+
+The Software is primarily distributed in binary form, and may include supporting scripts, service definitions, and other artefacts necessary for its operation.
+
+Third-Party Components are not licensed under this license and remain subject to their respective licenses.
+
+The Software is provided “as is”, without warranty of any kind, express or implied.
+

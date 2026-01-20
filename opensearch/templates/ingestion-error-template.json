@@ -1,0 +1,123 @@
+{
+  "index_patterns": [
+    "ingestion-error-*"
+  ],
+  "priority": 300,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 0,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic": true,
+      "date_detection": false,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "@version":   { "type": "keyword" },
+
+        "tags":       { "type": "keyword" },
+
+        "case_id":     { "type": "keyword" },
+        "source_type": { "type": "keyword" },
+
+        "host_ip":   { "type": "ip" },
+        "hostname":  { "type": "keyword" },
+
+        "size":      { "type": "long" },
+
+        "log": {
+          "properties": {
+            "file": {
+              "properties": {
+                "path": {
+                  "type": "keyword",
+                  "ignore_above": 4096
+                }
+              }
+            }
+          }
+        },
+
+        "error": {
+          "properties": {
+            "message": { "type": "text" },
+            "type":    { "type": "keyword" },
+            "reason":  { "type": "text" }
+          }
+        },
+
+        "event": {
+          "properties": {
+            "original": {
+              "type": "keyword",
+              "ignore_above": 1024,
+              "index": false
+            }
+          }
+        },
+
+        "pipeline": { "type": "keyword" },
+        "reason":   { "type": "text" },
+
+        "dlq": {
+          "properties": {
+            "entry_time": {
+              "type": "date",
+              "format": "strict_date_optional_time_nanos"
+            },
+            "error_message": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 1024
+                }
+              }
+            },
+            "error_type": {
+              "type": "keyword"
+            },
+            "plugin_id": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "plugin_type": {
+              "type": "keyword"
+            },
+            "reason": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 1024
+                }
+              }
+            },
+            "summary": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 1024
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "aliases": {
+      "all-json": {},
+      "all": {}
+    }
+  },
+  "_meta": {
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "desc": "Ingestion error events from Logstash Dead Letter Queue;"
+  },
+  "version": 1
+}
+

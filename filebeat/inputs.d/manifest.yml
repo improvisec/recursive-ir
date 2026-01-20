@@ -1,0 +1,40 @@
+# /etc/recursive-ir/filebeat/inputs.d/manifest.yml
+- type: filestream
+  id: ri-manifests
+  enabled: true
+
+  paths:
+    # Case-level single JSON (one line)
+    - /var/log/recursive-ir/cases/*/case_manifest.json
+    # Host-level single JSON (one line)
+    - /var/log/recursive-ir/cases/*/hosts/*/host_manifest.json
+    # Any JSONL under the host's manifest dir (one object per line)
+    - /var/log/recursive-ir/cases/*/hosts/*/artefacts_manifest.jsonl
+
+
+
+  file_identity: 
+    native: ~
+  prospector.scanner.fingerprint.enabled: false
+
+  # Filestream supports ndjson (not "json") as a parser
+  parsers:
+    - ndjson:
+        # put parsed keys at root of the event
+        target: ""
+        overwrite_keys: true
+        add_error_key: true
+
+  exclude_files:
+    - '\.ri_scaffolded$'
+    - '/jsonified_artefacts/'       # do not touch converted event streams
+    - '/raw_artefacts/'
+
+  # Close cleanly after EOF on short files
+  close.reader.on_eof: true
+
+  # (Optional meta)
+  fields:
+    source_type: manifest
+  fields_under_root: true
+

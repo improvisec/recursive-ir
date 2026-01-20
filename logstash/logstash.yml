@@ -1,0 +1,21 @@
+# ------------------------------------------------------------------
+# Recursive-IR Logstash Pipeline
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+#
+# ------------------------------------------------------------------
+path.data: /var/lib/recursive-ir/logstash
+path.logs: /var/log/recursive-ir/logstash
+pipeline.ecs_compatibility: disabled
+pipeline.ordered: auto
+pipeline.workers: 8
+pipeline.batch.size: 1500
+pipeline.batch.delay: 25
+api.enabled: false
+queue.type: memory
+queue.max_bytes: 2gb
+config.reload.automatic: true
+config.reload.interval: 3s   # check every 5 seconds
+dead_letter_queue.enable: true
+dead_letter_queue.max_bytes: 10737418240
+path.dead_letter_queue: /var/lib/recursive-ir/logstash/dead_letter_queue

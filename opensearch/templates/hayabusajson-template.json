@@ -1,0 +1,149 @@
+{
+  "index_patterns": ["hayabusajson-*"] ,
+  "priority": 500,
+  "composed_of": ["ecs-component", "enrichment-component"],
+  "template": {
+    "settings": {
+      "index.query.default_field": ["event.blob_preview.*"],
+      "analysis": {
+        "char_filter": {
+          "backslash_to_slash": {
+            "type": "pattern_replace",
+            "pattern": "\\\\",
+            "replacement": "/"
+          }
+        },
+        "analyzer": {
+          "path_hierarchy_an": {
+            "type": "custom",
+            "char_filter": ["backslash_to_slash"],
+            "tokenizer": "path_hierarchy"
+          }
+        }
+      }
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "case_id":     { "type": "keyword" },
+        "document_id":     { "type": "keyword" },
+        "source_type": { "type": "keyword" },
+        "sa_unmapped": { "type": "keyword" },
+        "host_ip":     { "type": "ip" },
+
+        "event": {
+          "properties": {
+            "blobs": { "type": "object", "enabled": false },
+            "blob_preview": { "type": "object", "dynamic": true },
+            "blob_hash": { "type": "object", "dynamic": true }
+          }
+        },
+
+        "host": {
+          "properties": {
+            "name": { "type": "keyword" },
+            "ip":   { "type": "ip" }
+          }
+        },
+        "file": {
+          "properties": {
+            "path": {
+              "type": "keyword",
+              "fields": {
+                "parts": { "type": "text", "analyzer": "path_hierarchy_an" },
+                "wc":    { "type": "wildcard" }
+              }
+            }
+          }
+        },
+        "log": {
+          "properties": {
+            "file": {
+              "properties": {
+                "path": {
+                  "type": "keyword",
+                  "fields": {
+                    "parts": { "type": "text", "analyzer": "path_hierarchy_an" },
+                    "wc":    { "type": "wildcard" }
+                  }
+                },
+                "parent1": { "type": "keyword", "ignore_above": 1024 },
+                "parent2": { "type": "keyword", "ignore_above": 1024 },
+                "parent3": { "type": "keyword", "ignore_above": 1024 }
+              }
+            }
+          }
+        }
+      },
+      "dynamic_templates": [
+        { "num_int_fields":   { "match": "*_num",  "mapping": { "type": "long"   } } },
+        { "num_float_fields": { "match": "*_fnum", "mapping": { "type": "double" } } },
+
+        { "raw_keywords": {
+            "match": "*_raw",
+            "mapping": { "type": "keyword", "ignore_above": 1024 }
+        }},
+
+        { "stringify_extrafieldinfo": {
+            "path_match": "ExtraFieldInfo.*",
+            "match_mapping_type": "*",
+            "mapping": { "type": "keyword", "ignore_above": 1024 }
+        }},
+        { "stringify_details": {
+            "path_match": "Details.*",
+            "match_mapping_type": "*",
+            "mapping": { "type": "keyword", "ignore_above": 1024 }
+        }},
+        { "stringify_eventdata": {
+            "path_match": "Event.EventData.*",
+            "match_mapping_type": "*",
+            "mapping": { "type": "keyword", "ignore_above": 4096 }
+        }},
+        { "stringify_userdata": {
+            "path_match": "Event.UserData.*",
+            "match_mapping_type": "*",
+            "mapping": { "type": "keyword", "ignore_above": 4096 }
+        }},
+
+        { "store_only_blob_hash": {
+            "path_match": "event.blob_hash.*",
+            "match_mapping_type": "*",
+            "mapping": { "type": "keyword", "ignore_above": 1024 }
+        }},
+        { "store_only_blob_preview": {
+            "path_match": "event.blob_preview.*",
+            "match_mapping_type": "string",
+            "mapping": { "type": "text" }
+        }},
+
+        { "strings_text_with_keyword": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "text",
+              "fields": {
+                "keyword": { "type": "keyword", "ignore_above": 1024 }
+              }
+            }
+        }},
+
+        { "attr_type_keyword": {
+            "path_match": "attributes.*.data.attribute_type",
+            "mapping": { "type": "keyword", "ignore_above": 256 }
+        }}
+      ]
+    },
+    "aliases": {
+      "all-json": {},
+      "all": {}
+    }
+  },
+  "_meta": {
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "generated_by": "dfir parser new",
+    "description": "Generic template for 'hayabusajson'.",
+    "notes": "Auto-generated. Manual modifications maybe overwritten if --force is specified."
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "index_patterns": ["case-counter"],
+  "priority": 500,
+  "template": {
+    "settings": {
+      "index.number_of_replicas": "0",
+      "index.number_of_shards": "1",
+      "index.refresh_interval": "1s"
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "next": { "type": "integer" }
+      }
+    }
+  },
+  "_meta": {
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "description": "Template for DFIR counter index (used to allocate case IDs, host IDs, etc.)"
+  }
+}
+

@@ -1,0 +1,41 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+candidates:
+  - "[timestamps][crtime]"
+  - "[timestamps][ctime]"
+  - "[timestamps][mtime]"
+  - "[timestamps][atime]"
+  - "[file][created]"
+  - "[file][ctime]"
+  - "[file][mtime]"
+  - "[file][accessed]"
+  - "[Event][System][TimeCreated][#attributes][SystemTime]"
+  - "[winlog][time_created]"
+  - "[eventTime]"
+  - "[timestamp]"
+  - "[id][time]"
+  - "[CreationTime]"
+  - "[prefetch][last_run]"
+  - "[prefetch][last_run_time]"
+  - "[registry][last_write_time]"
+  - "[registry][key][last_write_time]"
+  - "[amcache][modified_time]"
+  - "[suricata][event][timestamp]"
+  - "[unix_time_ms]"
+  - "[unix_time]"
+  - "[ts]"
+  - "[event][created]"
+  - "[event][start]"
+  - "[event][end]"
+  - "[datetime]"
+  - "[Timestamp]"
+  - "[time]"
+  - "[date]"
+  - "[observed_time]"
+  - "[recorded_time]"
+  - "[created_at]"
+  - "[updated_at]"
+

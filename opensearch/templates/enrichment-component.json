@@ -1,0 +1,40 @@
+{
+  "template": {
+    "mappings": {
+      "properties": {
+        "event": {
+          "properties": {
+            "comments": {
+              "type": "object",
+              "dynamic": "strict",
+              "properties": {
+                "count":    { "type": "integer" },
+                "authors":  { "type": "keyword" },
+                "last_by":  { "type": "keyword" },
+                "last_at":  { "type": "date" },
+                "last":     { "type": "match_only_text" },
+                "history": {
+                  "type": "object",
+                  "dynamic": "strict",
+                  "properties": {
+                    "id":         { "type": "keyword" },
+                    "by":         { "type": "keyword" },
+                    "created_at": { "type": "date" },
+                    "text":       { "type": "text" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "_meta": {
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "generated_by": "dfir parser new",
+    "description": "Template for enrichment data."
+  }
+}
