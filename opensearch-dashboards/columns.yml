@@ -1,13 +1,8 @@
-# ------------------------------------------------------------------
-# Recursive-IR configuration file
-# Copyright (c) 2026 Mark Jayson Alvarez
-# Licensed under the Recursive-IR License
-# ------------------------------------------------------------------
 # Global defaults that apply everywhere.
-# timestamp_<timezone> columns are automatically toggled during 'dfir case new -z <timezone>'
 global:
   default_columns:
-    - timestamp_desc
+#    - timestamp_desc
+
     # Australian + NZ Timezones
 #    - timestamp_AEST
 #    - timestamp_AEDT
@@ -41,7 +36,7 @@ global:
 #    - timestamp_MSK
 #
 #    # Asia / Middle East
-#    - timestamp_IST
+# - timestamp_IST
 #    - timestamp_PKT
 #    - timestamp_WIB
 #    - timestamp_WITA
@@ -56,9 +51,9 @@ global:
     - source_type
 
     # Manifests
-    - manifest_type
-    - artefact_type
-    - file_path
+#    - manifest_type
+#    - artefact_type
+#    - file_path
 
     # Ingestion-error
     - dlq.error_type
@@ -81,8 +76,6 @@ types:
     # Columns listed here become the initial set of columns in Discover
     # for evtxjson-*.
     default_columns: 
-      - tags
-      - event.comments.last
       - Event.System.Computer
       - Event.System.Channel
       - Event.System.Provider
@@ -92,8 +85,6 @@ types:
     # Columns listed here become the initial set of columns in Discover
     # for hayabusajson-*.
     default_columns: 
-      - tags
-      - event.comments.last
       - Computer
       - Level
       - RuleTitle
@@ -102,8 +93,6 @@ types:
     # Columns listed here become the initial set of columns in Discover
     # for mftjson-*.
     default_columns: 
-      - tags
-      - event.comments.last
       - File_Name
       - Parent_Dir
       - Full_Path
@@ -115,8 +104,6 @@ types:
     # Columns listed here become the initial set of columns in Discover
     # for plasojson-*.
     default_columns: 
-      - tags
-      - event.comments.last
       - parser
       - message 
 
@@ -124,4 +111,31 @@ types:
     # Columns listed here become the initial set of columns in Discover
     # for json-arrayjson-*.
     default_columns: []
+
+  dissect-evtxjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for dissect-evtxjson-*.
+    default_columns: []
+
+  nginxjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for nginxjson-*.
+    default_columns:
+     - request_method
+     - request_path
+     - source.ip
+     - source.geo.country_name
+
+  linuxfsjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for linuxfsjson-*.
+    default_columns: []
+
+  cloudtrailjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for cloudtrailjson-*.
+    default_columns: 
+     - eventName
+     - userIdentity.accessKeyId
+     - resources.ARN
 
