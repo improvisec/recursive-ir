@@ -1,0 +1,44 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+[Unit]
+Description=Recursive-IR ingest watcher
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=50
+
+# Do not start until the runtime env exists
+ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+
+[Service]
+Type=simple
+User=@RI_USER@
+Group=@RI_GROUP@
+
+# Repo location (written by: dfir init)
+EnvironmentFile=/etc/recursive-ir/conf/paths.env
+
+# Runtime configuration (credentials, WATCH_ROOT, etc.)
+EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+
+# Run dfir explicitly from repo (absolute path substituted by dfir init)
+ExecStart=@RI_BIN@/dfir ingest watch
+
+Restart=always
+RestartSec=2
+
+# Hardening (tune paths as needed)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+# Nice-to-have limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+

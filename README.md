@@ -1,25 +1,28 @@
-# Recursive-IR
+<p align="center">
+  <img src="assets/images/recursive-ir-banner-light.png" alt="Recursive-IR" width="700">
+</p>
 
-Recursive-IR is a single-binary orchestration that turns an OpenSearch stack into a fully capable and customisable DFIR log analytics platform.
+Recursive-IR is a single-binary orchestration layer that transforms an OpenSearch stack into a fully capable and customisable DFIR log analytics platform.
 
-It supports case-centric investigations and persistent enrichments (tags, comments, and analyst context), while fully harnessing the strengths of OpenSearch and native OpenSearch Dashboards—scalable observability, visualisation, and Security Analytics for alerting and correlation across ingested forensic artefacts.
+![diagram](screenshots/diagram.png)
 
-Recursive-IR can drive arbitrary parsers and facilitate log ingestion through dynamically generated parsing pipelines and mapping templates, allowing heterogeneous forensic data to be ingested safely and consistently.
+Recursive-IR enables case-centric investigations with persistent enrichments such as tags, comments, and analyst context, while fully leveraging the strengths of OpenSearch and native OpenSearch Dashboards — scalable observability, visualisation, and Security Analytics for alerting and correlation across ingested forensic artefacts.
 
-Field normalisation such as copying and renaming are defined declaratively, enabling schemas to be adapted and evolved without hard-coding logic into ingestion pipelines.
+It can drive arbitrary parsers and facilitate log ingestion through dynamically generated parsing pipelines and mapping templates, allowing heterogeneous forensic data to be ingested safely and consistently.
 
-Data-type conflicts and other ingestion issues are isolated into a dedicated index, with built-in facilities to correct mapping conflicts and seamlessly reload previously ingested data, ensuring investigations remain accurate, reproducible, and deterministic.
+Field normalisation (copying, renaming, restructuring) is defined declaratively, enabling schemas to evolve without hard-coding logic into ingestion pipelines.
 
-Recursive-IR is not a forensic artefact collection or live response tool. It focuses on the orchestration, ingestion, normalisation, enrichment, and analysis of forensic data after collection, and is designed to integrate cleanly with existing acquisition workflows and tooling.
+Data-type conflicts and other ingestion issues are isolated into a dedicated index, with built-in facilities to correct mapping conflicts and seamlessly reload previously ingested data — ensuring investigations remain accurate, reproducible, and deterministic.
 
-Instead of enforcing a fixed investigation model or interface, Recursive-IR provides a flexible analytics foundation that adapts to different DFIR workflows, enabling teams to shape investigations around their needs rather than conforming to a predefined tool workflow.
+Recursive-IR is not a forensic artefact collection or live response tool. It focuses on orchestration, ingestion, normalisation, enrichment, and analysis of forensic data after collection, and is designed to integrate cleanly with existing acquisition workflows and tooling.
 
+Rather than enforcing a fixed investigation model or interface, Recursive-IR provides a flexible analytics foundation that adapts to different DFIR workflows — enabling teams to shape investigations around their needs rather than conforming to a predefined tool workflow.
 
+---
 
 ## Quickstart
 
-Run:
+Initialise the environment:
 
-    sudo ./bin/dfir init
-
-See docs/ for details.
+```bash
+sudo ./bin/dfir init

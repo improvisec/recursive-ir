@@ -114,7 +114,14 @@
         { "store_only_blob_preview": {
             "path_match": "event.blob_preview.*",
             "match_mapping_type": "string",
-            "mapping": { "type": "text" }
+            "mapping": {
+                "type": "text",
+                "fields": {
+                    "wc": {
+                        "type": "wildcard"
+                    }
+                }
+            }
         }},
 
         { "strings_text_with_keyword": {

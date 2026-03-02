@@ -1,0 +1,463 @@
+# mitre.rich.simple.yml
+# Single-tree schema for UI: tags -> (tactic -> technique -> subtechnique)
+# Preserves description + aliases for search/tooltip, while canonical tag remains:
+#   mitre-TA0001-T1566-T1566.002
+
+tags:
+  - id: TA0043
+    name: Reconnaissance
+    description: Adversary gathering information for planning and targeting.
+    aliases:
+      - recon
+      - information gathering
+      - footprinting
+      - scanning
+    children:
+      - id: T1595
+        name: Active Scanning
+        description: Scanning for live hosts, services, and vulnerabilities.
+        children:
+          - id: T1595.001
+            name: Scanning IP Blocks
+          - id: T1595.002
+            name: Vulnerability Scanning
+
+      - id: T1590
+        name: Gather Victim Network Information
+        description: Collecting info about victim network topology and infrastructure.
+        children:
+          - id: T1590.001
+            name: Domain Properties
+          - id: T1590.002
+            name: DNS
+          - id: T1590.006
+            name: Network Security Appliances
+
+      - id: T1589
+        name: Gather Victim Identity Information
+        description: Collecting info on accounts and identities.
+        children:
+          - id: T1589.001
+            name: Credentials
+          - id: T1589.002
+            name: Email Addresses
+
+      - id: T1598
+        name: Phishing for Information
+        description: Social engineering to elicit data from targets.
+        children:
+          - id: T1598.001
+            name: Spearphishing Service
+          - id: T1598.002
+            name: Spearphishing Link
+
+  - id: TA0042
+    name: Resource Development
+    description: Establishing resources to support operations (infra, tooling, accounts).
+    aliases:
+      - infrastructure setup
+      - tool acquisition
+    children:
+      - id: T1583
+        name: Acquire Infrastructure
+        description: Obtaining servers, domains, and network resources.
+        children:
+          - id: T1583.001
+            name: Domains
+          - id: T1583.002
+            name: DNS Servers
+          - id: T1583.003
+            name: Virtual Private Servers
+
+      - id: T1584
+        name: Compromise Infrastructure
+        description: Taking over existing infrastructure for malicious use.
+        children:
+          - id: T1584.001
+            name: Domains
+          - id: T1584.002
+            name: DNS Servers
+
+      - id: T1608
+        name: Stage Capabilities
+        description: Staging malware, tools, and payloads for deployment.
+        children:
+          - id: T1608.001
+            name: Upload Malware
+          - id: T1608.002
+            name: Install Digital Certificate
+
+  - id: TA0001
+    name: Initial Access
+    description: Gaining a foothold in the environment.
+    aliases:
+      - initial compromise
+      - entry point
+    children:
+      - id: T1566
+        name: Phishing
+        description: Social engineering delivered via email or messaging.
+        children:
+          - id: T1566.001
+            name: Spearphishing Attachment
+          - id: T1566.002
+            name: Spearphishing Link
+          - id: T1566.003
+            name: Spearphishing via Service
+
+      - id: T1190
+        name: Exploit Public-Facing Application
+        description: Exploitation of Internet-exposed applications.
+
+      - id: T1133
+        name: External Remote Services
+        description: Use of VPN, RDP, or other remote access for entry.
+
+      - id: T1078
+        name: Valid Accounts
+        description: Using stolen or legitimate credentials for access.
+        children:
+          - id: T1078.001
+            name: Local Accounts
+          - id: T1078.002
+            name: Domain Accounts
+          - id: T1078.004
+            name: Cloud Accounts
+
+  - id: TA0002
+    name: Execution
+    description: Running malicious or attacker-controlled code.
+    aliases:
+      - code execution
+      - malware execution
+    children:
+      - id: T1059
+        name: Command and Scripting Interpreter
+        description: Execution via shells and scripting engines.
+        children:
+          - id: T1059.001
+            name: PowerShell
+          - id: T1059.003
+            name: Windows Command Shell
+          - id: T1059.005
+            name: Visual Basic
+          - id: T1059.006
+            name: Python
+
+      - id: T1204
+        name: User Execution
+        description: Users running content that leads to execution.
+        children:
+          - id: T1204.002
+            name: Malicious File
+          - id: T1204.001
+            name: Malicious Link
+
+      - id: T1105
+        name: Ingress Tool Transfer
+        description: Transferring tools or payloads onto a compromised system.
+
+      - id: T1047
+        name: Windows Management Instrumentation
+        description: Use of WMI for remote or local execution.
+
+  - id: TA0003
+    name: Persistence
+    description: Maintaining access and foothold across restarts and logoffs.
+    aliases:
+      - backdoor
+      - autorun persistence
+    children:
+      - id: T1053
+        name: Scheduled Task/Job
+        description: Using scheduled tasks or jobs to run payloads.
+        children:
+          - id: T1053.005
+            name: Scheduled Task (Windows)
+          - id: T1053.003
+            name: Cron
+
+      - id: T1060
+        name: Registry Run Keys / Startup Folder
+        description: Persisting via startup locations on Windows.
+
+      - id: T1547
+        name: Boot or Logon Autostart Execution
+        description: Mechanisms that run automatically at boot or logon.
+        children:
+          - id: T1547.001
+            name: Registry Run Keys
+          - id: T1547.009
+            name: Shortcut Modification
+
+      - id: T1136
+        name: Create Account
+        description: Creating local or domain accounts for long-term access.
+        children:
+          - id: T1136.001
+            name: Local Account
+          - id: T1136.002
+            name: Domain Account
+
+  - id: TA0004
+    name: Privilege Escalation
+    description: Gaining higher-level permissions.
+    aliases:
+      - privilege elevation
+    children:
+      - id: T1068
+        name: Exploitation for Privilege Escalation
+        description: Abusing software flaws to elevate privileges.
+
+      - id: T1134
+        name: Access Token Manipulation
+        description: Manipulating tokens for privilege/identity changes.
+        children:
+          - id: T1134.001
+            name: Token Impersonation/Theft
+
+      - id: T1078
+        name: Valid Accounts
+        description: Reusing higher-privileged accounts to escalate.
+
+      - id: T1548
+        name: Abuse Elevation Control Mechanism
+        description: Abusing sudo, UAC, or similar.
+        children:
+          - id: T1548.002
+            name: Bypass User Account Control
+
+  - id: TA0005
+    name: Defense Evasion
+    description: Avoiding detection and bypassing defenses.
+    aliases:
+      - evasion
+      - security bypass
+    children:
+      - id: T1562
+        name: Impair Defenses
+        description: Disabling or weakening security tools.
+        children:
+          - id: T1562.001
+            name: Disable or Modify Tools
+          - id: T1562.004
+            name: Disable System Logging
+
+      - id: T1070
+        name: Indicator Removal on Host
+        description: Removing, altering, or covering logs and artifacts.
+        children:
+          - id: T1070.001
+            name: Clear Windows Event Logs
+          - id: T1070.004
+            name: File Deletion
+
+      - id: T1036
+        name: Masquerading
+        description: Disguising artifacts as legitimate.
+
+      - id: T1140
+        name: Deobfuscate/Decode Files or Information
+        description: Using obfuscation/encoding to hide code or data.
+
+  - id: TA0006
+    name: Credential Access
+    description: Stealing account credentials and secrets.
+    aliases:
+      - credential dumping
+      - password theft
+    children:
+      - id: T1003
+        name: OS Credential Dumping
+        description: Extracting credentials from OS components.
+        children:
+          - id: T1003.001
+            name: LSASS Memory
+          - id: T1003.002
+            name: Security Account Manager (SAM)
+          - id: T1003.004
+            name: LSA Secrets
+
+      - id: T1555
+        name: Credentials from Password Stores
+        description: Pulling credentials from browsers or password managers.
+        children:
+          - id: T1555.003
+            name: Credentials from Web Browsers
+
+      - id: T1110
+        name: Brute Force
+        description: Guessing passwords for accounts.
+        children:
+          - id: T1110.001
+            name: Password Guessing
+          - id: T1110.003
+            name: Password Spraying
+
+      - id: T1552
+        name: Unsecured Credentials
+        description: Finding creds in files, scripts, or backups.
+
+  - id: TA0007
+    name: Discovery
+    description: Understanding the environment, accounts, and assets.
+    aliases:
+      - environment enumeration
+      - network discovery
+    children:
+      - id: T1087
+        name: Account Discovery
+        description: Enumerating users and groups.
+        children:
+          - id: T1087.001
+            name: Local Account
+          - id: T1087.002
+            name: Domain Account
+
+      - id: T1046
+        name: Network Service Scanning
+        description: Scanning for open ports and services.
+
+      - id: T1082
+        name: System Information Discovery
+        description: Querying OS version, hardware, etc.
+
+      - id: T1482
+        name: Domain Trust Discovery
+        description: Enumerating trust relationships across domains.
+
+  - id: TA0008
+    name: Lateral Movement
+    description: Moving from one host or account to another.
+    aliases:
+      - internal movement
+      - pivoting
+    children:
+      - id: T1021
+        name: Remote Services
+        description: Using remote management protocols for lateral movement.
+        children:
+          - id: T1021.001
+            name: Remote Desktop Protocol (RDP)
+          - id: T1021.002
+            name: SMB/Windows Admin Shares
+          - id: T1021.006
+            name: Windows Remote Management (WinRM)
+
+      - id: T1077
+        name: Windows Admin Shares
+        description: Using admin shares to move and execute.
+
+      - id: T1550
+        name: Use of Stolen Credentials
+        description: Using captured creds for lateral access.
+
+      - id: T1027
+        name: Obfuscated Files or Information
+        description: Hiding payloads used for lateral tooling.
+
+  - id: TA0009
+    name: Collection
+    description: Gathering target data for later use or exfiltration.
+    aliases:
+      - data collection
+    children:
+      - id: T1114
+        name: Email Collection
+        description: Collecting emails from mail clients or servers.
+        children:
+          - id: T1114.001
+            name: Local Email Collection
+          - id: T1114.003
+            name: Cloud Email Collection
+
+      - id: T1113
+        name: Screen Capture
+        description: Capturing desktop screenshots.
+
+      - id: T1056
+        name: Input Capture
+        description: Capturing keyboard or mouse input.
+        children:
+          - id: T1056.001
+            name: Keylogging
+
+      - id: T1115
+        name: Clipboard Data
+        description: Reading or capturing clipboard contents.
+
+  - id: TA0011
+    name: Command and Control
+    description: Maintaining communication with compromised systems.
+    aliases:
+      - c2
+      - beaconing
+    children:
+      - id: T1071
+        name: Application Layer Protocol
+        description: Using common protocols to blend C2 traffic.
+        children:
+          - id: T1071.001
+            name: Web Protocols
+          - id: T1071.004
+            name: DNS
+
+      - id: T1095
+        name: Non-Application Layer Protocol
+        description: Using lower-level protocols for C2.
+
+      - id: T1105
+        name: Ingress Tool Transfer
+        description: Transferring tools over C2 channels.
+
+      - id: T1573
+        name: Encrypted Channel
+        description: Encrypting C2 communications.
+
+  - id: TA0010
+    name: Exfiltration
+    description: Stealing or leaking data out of the environment.
+    aliases:
+      - data theft
+      - data exfiltration
+    children:
+      - id: T1041
+        name: Exfiltration Over C2 Channel
+        description: Reusing the C2 channel for data theft.
+
+      - id: T1048
+        name: Exfiltration Over Alternative Protocol
+        description: Using non-standard protocols for exfil.
+        children:
+          - id: T1048.002
+            name: Exfiltration Over Asymmetric Encrypted Non-C2 Protocol
+
+      - id: T1567
+        name: Exfiltration Over Web Services
+        description: Using cloud or web services to move stolen data.
+        children:
+          - id: T1567.002
+            name: Exfiltration to Cloud Storage
+
+  - id: TA0040
+    name: Impact
+    description: Disrupting, destroying, or manipulating systems and data.
+    aliases:
+      - destruction
+      - sabotage
+    children:
+      - id: T1486
+        name: Data Encrypted for Impact
+        description: Encrypting data for ransom or destruction.
+
+      - id: T1499
+        name: Endpoint Denial of Service
+        description: Overloading endpoints to cause outages.
+
+      - id: T1489
+        name: Service Stop
+        description: Stopping services to impact availability.
+
+      - id: T1565
+        name: Data Manipulation
+        description: Changing data to cause operational or integrity issues.

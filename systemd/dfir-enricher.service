@@ -1,0 +1,30 @@
+# ------------------------------------------------------------------
+# Recursive-IR confiuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+[Unit]
+Description=Recursive-IR enrich projection (all cases)
+After=network-online.target
+Wants=network-online.target
+
+# Do not run until the runtime env exists
+ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+
+[Service]
+Type=oneshot
+User=@RI_USER@
+Group=@RI_GROUP@
+
+EnvironmentFile=/etc/recursive-ir/conf/paths.env
+EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+
+# Project queued enrichments for every case that has an enrichments DB.
+# NOTE: cmd_enrich requires --case, so we enumerate cases first.
+ExecStart=/bin/sh -lc '\
+  set -e; \
+  @RI_BIN@/dfir enrich cases | while IFS= read -r c; do \
+    [ -n "$c" ] || continue; \
+    @RI_BIN@/dfir enrich project --case "$c" --batch 500 --commit; \
+  done \
+'

@@ -1,0 +1,49 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: recursive-ir-nginx
+    network_mode: host
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - recursive-ir-api
+      - recursive-ir-ui
+
+  recursive-ir-api:
+    build: ./api
+    image: recursive-ir-api:dev
+    container_name: recursive-ir-api
+    network_mode: host
+
+    # Run as the host dfir user/group (numeric IDs), so /data files won't become root-owned
+    user: "${RI_UID}:${RI_GID}"
+
+    volumes:
+      # FAIL FAST if the host path doesn't exist (prevents Docker from auto-creating it as root:root)
+      - type: bind
+        source: /var/lib/recursive-ir/web
+        target: /data
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: /etc/recursive-ir/logstash/certs
+        target: /etc/recursive-ir/logstash/certs
+        read_only: true
+
+      - type: bind
+        source: /etc/recursive-ir/conf/tags
+        target: /etc/recursive-ir/conf/tags
+        read_only: true
+        bind:
+          create_host_path: false
+
+    env_file:
+      - /etc/recursive-ir/conf/recursive.env
+
+  recursive-ir-ui:
+    build: ./ui
+    image: recursive-ir-ui:dev
+    container_name: recursive-ir-ui
+    ports:
+      - "127.0.0.1:8081:80"

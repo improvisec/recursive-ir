@@ -4,53 +4,53 @@
 # Licensed under the Recursive-IR License
 # ------------------------------------------------------------------
 # Global defaults that apply everywhere.
+# timestamp_<timezone> columns are automatically toggled during 'dfir case new -z <timezone>'
 global:
   default_columns:
     - timestamp_desc
-
     # Australian + NZ Timezones
-    - timestamp_AEST
-    - timestamp_AEDT
-    - timestamp_ACST
-    - timestamp_ACDT
-    - timestamp_AWST
-    - timestamp_NZST
-    - timestamp_NZDT
-
-    # North America
-    - timestamp_EST
-    - timestamp_EDT
-    - timestamp_CST
-    - timestamp_CDT
-    - timestamp_MST
-    - timestamp_MDT
-    - timestamp_PST
-    - timestamp_PDT
-    - timestamp_AKST
-    - timestamp_AKDT
-    - timestamp_HST
-
-    # Europe
-    - timestamp_WET
-    - timestamp_WEST
-    - timestamp_BST
-    - timestamp_CET
-    - timestamp_CEST
-    - timestamp_EET
-    - timestamp_EEST
-    - timestamp_MSK
-
-    # Asia / Middle East
-    - timestamp_IST
-    - timestamp_PKT
-    - timestamp_WIB
-    - timestamp_WITA
-    - timestamp_WIT
-    - timestamp_JST
-    - timestamp_KST
-    - timestamp_HKT
-    - timestamp_SGT
-    - timestamp_PHT
+#    - timestamp_AEST
+#    - timestamp_AEDT
+#    - timestamp_ACST
+#    - timestamp_ACDT
+#    - timestamp_AWST
+#    - timestamp_NZST
+#    - timestamp_NZDT
+#
+#    # North America
+#    - timestamp_EST
+#    - timestamp_EDT
+#    - timestamp_CST
+#    - timestamp_CDT
+#    - timestamp_MST
+#    - timestamp_MDT
+#    - timestamp_PST
+#    - timestamp_PDT
+#    - timestamp_AKST
+#    - timestamp_AKDT
+#    - timestamp_HST
+#
+#    # Europe
+#    - timestamp_WET
+#    - timestamp_WEST
+#    - timestamp_BST
+#    - timestamp_CET
+#    - timestamp_CEST
+#    - timestamp_EET
+#    - timestamp_EEST
+#    - timestamp_MSK
+#
+#    # Asia / Middle East
+#    - timestamp_IST
+#    - timestamp_PKT
+#    - timestamp_WIB
+#    - timestamp_WITA
+#    - timestamp_WIT
+#    - timestamp_JST
+#    - timestamp_KST
+#    - timestamp_HKT
+#    - timestamp_SGT
+#    - timestamp_PHT
 
     # Must keep source_type for filtering
     - source_type

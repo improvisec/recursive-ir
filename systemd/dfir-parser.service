@@ -1,0 +1,29 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+[Unit]
+Description=Recursive-IR ingest parser batch
+After=network-online.target dfir-watcher.service
+Wants=dfir-watcher.service
+
+# Do not run until the runtime env exists
+ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+
+[Service]
+Type=oneshot
+User=@RI_USER@
+Group=@RI_GROUP@
+
+# Repo location (written by: dfir init)
+EnvironmentFile=/etc/recursive-ir/conf/paths.env
+
+# Runtime configuration
+EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+
+# Run dfir explicitly from repo (absolute path substituted by dfir init)
+ExecStart=@RI_BIN@/dfir ingest parse --execute --jobs-auto
+
+ExecStartPost=-@RI_BIN@/dfir osd fields-refresh all
+

@@ -16,9 +16,25 @@
   #   # MOVE a field from one name to another (source → target)
   #   # src_ip: source.ip
   # copy:
-  #   # DUPLICATE a field into one or more targets
-  #   # event_id: [ event.code, pattern.event_id ]
-  # set_if_present:
+   # DUPLICATE a field into one or more targets
+   # 1) Single ECS object target (canonical, safest)
+   # event_id: ["[event][code]"]
+   #
+   # 2) Multiple ECS object targets
+   # event_id: ["[event][code]", "[pattern][event_id]"]
+   #
+   # 3) Unquoted path segments (no quotes, ECS-safe)
+   # event_id:
+   #   - [event, code]
+   #   - [pattern, event_id]
+   #
+   # 4) Mixed styles (allowed, but not recommended for readability)
+   # event_id: ["[event][code]", [pattern, event_id]]
+   #
+   # NOTE:
+   # - Dotted paths like 'event.code' create FLAT fields and are NOT ECS objects.
+   # - Use bracket paths '[event][code]' or segment lists '[event, code]' for objects.
+ # set_if_present:
   #   # Only copy when source field exists and is non-empty
   #   # username: [ user.name ]
   # drop:

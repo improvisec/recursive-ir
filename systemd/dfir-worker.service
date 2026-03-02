@@ -1,0 +1,32 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+[Unit]
+Description=Recursive-IR worker (job executor)
+After=network-online.target
+Wants=network-online.target
+
+# Do not run until the runtime env exists
+ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+
+[Service]
+Type=simple
+User=@RI_USER@
+Group=@RI_GROUP@
+
+# Repo location (written by: dfir init)
+EnvironmentFile=/etc/recursive-ir/conf/paths.env
+
+# Runtime configuration
+EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+
+# Long-running poller
+ExecStart=@RI_BIN@/dfir worker run --env-file /etc/recursive-ir/conf/recursive.env
+
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
