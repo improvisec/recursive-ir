@@ -61,7 +61,7 @@ cd recursive-ir
 
 ```bash
 sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='StrongPasswordHere' \
-  ./bin/install_opensearch_stack.sh
+  ./scripts/install_opensearch_stack.sh
 ```
 
 This installs and configures:
@@ -165,7 +165,7 @@ This includes:
 ## 3️⃣ Bootstrap Recursive-IR
 
 ```bash
-sudo dfir init --bootstrap-env --enable --create-recursive-user
+sudo ./bin/dfir init --bootstrap-env --enable --create-recursive-user
 ```
 
 This creates:
