@@ -60,7 +60,7 @@ cd recursive-ir
 ## 2️⃣ Install OpenSearch Stack
 
 ```bash
-sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='StrongPasswordHere' \
+sudo OS_PASS='StrongPasswordHere' \
   ./scripts/install_opensearch_stack.sh
 ```
 
@@ -223,10 +223,10 @@ Recursive-IR web components run in Docker.
 ## 6️⃣ Install Docker
 
 ```bash
-sudo apt update
-sudo apt install -y docker.io docker-compose-plugin
-sudo systemctl enable docker
-sudo systemctl start docker
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose
+sudo systemctl enable --now docker
+docker --version
 ```
 
 Verify:

@@ -26,7 +26,7 @@ trap 'echo "❌ install_opensearch_stack.sh failed at line $LINENO"; exit 1' ERR
 OS_APT_MAJOR="${OS_APT_MAJOR:-3.x}"            # OpenSearch APT "3.x" track
 ELASTIC_APT_MAJOR="${ELASTIC_APT_MAJOR:-8.x}" # Elastic APT track for logstash/filebeat packages
 
-OPENSEARCH_INITIAL_ADMIN_PASSWORD="${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-}"
+OS_PASS="${OS_PASS:-}"
 
 # Canonical cert location (your choice)
 RI_ETC_BASE="/etc/recursive-ir"
@@ -59,10 +59,10 @@ dpkg_ver() { dpkg -s "$1" 2>/dev/null | awk -F': ' '/^Version:/{print $2}'; }
 need_root
 export DEBIAN_FRONTEND=noninteractive
 
-if [[ -z "${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" ]]; then
-  echo "ERROR: Set OPENSEARCH_INITIAL_ADMIN_PASSWORD (required for OpenSearch fresh installs)."
+if [[ -z "${OS_PASS}" ]]; then
+  echo "ERROR: Set OS_PASS (required for OpenSearch fresh installs)."
   echo "Example:"
-  echo "  sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='StrongPassHere' $0"
+  echo "  sudo OS_PASS='StrongPassHere' $0"
   exit 1
 fi
 
@@ -96,7 +96,7 @@ if ! apt-get update; then
   apt-get update --allow-releaseinfo-change
 fi
 
-env OPENSEARCH_INITIAL_ADMIN_PASSWORD="${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+env OS_PASS="${OS_PASS}" \
   apt-get install -y opensearch opensearch-dashboards
 
 systemctl enable opensearch opensearch-dashboards
@@ -249,7 +249,7 @@ if ! grep -q "Recursive-IR Dashboards block" "${DASH_YML}"; then
 ######## Recursive-IR Dashboards block (managed by installer) ########
 opensearch.hosts: ["${OS_URL_LOCAL}"]
 opensearch.username: "admin"
-opensearch.password: "${OPENSEARCH_INITIAL_ADMIN_PASSWORD}"
+opensearch.password: "${OS_PASS}"
 opensearch.ssl.certificateAuthorities: ["${RI_CA}"]
 ######## End Recursive-IR Dashboards block ########
 EOF
@@ -343,7 +343,7 @@ section "Verification: OpenSearch TLS/auth (no -k)"
 OS_TLS_OK="FAIL"
 if curl --fail --silent \
   --cacert "${RI_CA}" \
-  -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+  -u "admin:${OS_PASS}" \
   "${OS_URL_LOCAL}" >/dev/null; then
   OS_TLS_OK="OK"
 fi
@@ -362,7 +362,7 @@ FB_STATUS="$(systemctl is-active filebeat || true)"
 CLUSTER_STATUS="unknown"
 if [[ "${OS_TLS_OK}" == "OK" ]]; then
   CLUSTER_STATUS="$(curl --silent --cacert "${RI_CA}" \
-    -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+    -u "admin:${OS_PASS}" \
     "${OS_URL_LOCAL}/_cluster/health" \
     | sed -n 's/.*"status":"\([^"]*\)".*/\1/p' | head -n1 || true)"
   [[ -n "${CLUSTER_STATUS}" ]] || CLUSTER_STATUS="unknown"
