@@ -60,7 +60,7 @@ cd recursive-ir
 ## 2️⃣ Install OpenSearch Stack
 
 ```bash
-sudo OS_PASS='StrongPasswordHere' \
+sudo OPENSEARCH_INITIAL_ADDMIN_PASSWORD='StrongPasswordHere' \
   ./scripts/install_opensearch_stack.sh
 ```
 
@@ -224,9 +224,15 @@ Recursive-IR web components run in Docker.
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y docker.io docker-compose
-sudo systemctl enable --now docker
-docker --version
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg |   sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+https://download.docker.com/linux/ubuntu \
+$(. /etc/os-release && echo "$VERSION_CODENAME") stable" |   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y   docker-ce   docker-ce-cli   containerd.io   docker-buildx-plugin   docker-compose-plugin
 ```
 
 Verify:
@@ -242,7 +248,11 @@ docker compose version
 
 ```bash
 cd web/docker
-docker compose up -d --build
+docker compose --env-file /etc/recursive-ir/conf/recursive.env \
+  -f /home/matato/recursive-ir/web/docker-compose.yml pull
+
+docker compose --env-file /etc/recursive-ir/conf/recursive.env \
+  -f /home/matato/recursive-ir/web/docker-compose.yml up -d
 ```
 
 This starts:

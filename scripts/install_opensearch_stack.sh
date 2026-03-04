@@ -1,13 +1,4 @@
 # ------------------------------------------------------------------
-# Recursive-IR install script
-# Copyright (c) 2026 Mark Jayson Alvarez
-# Licensed under the Recursive-IR License
-# ------------------------------------------------------------------
-# #!/usr/bin/env bash
-set -euo pipefail
-trap 'echo "❌ install_opensearch_stack.sh failed at line $LINENO"; exit 1' ERR
-
-# ------------------------------------------------------------------
 # Recursive-IR Full Stack Installer (APT-only)
 # OpenSearch + OpenSearch Dashboards + Logstash + Filebeat
 #
@@ -25,8 +16,7 @@ trap 'echo "❌ install_opensearch_stack.sh failed at line $LINENO"; exit 1' ERR
 # =========================
 OS_APT_MAJOR="${OS_APT_MAJOR:-3.x}"            # OpenSearch APT "3.x" track
 ELASTIC_APT_MAJOR="${ELASTIC_APT_MAJOR:-8.x}" # Elastic APT track for logstash/filebeat packages
-
-OS_PASS="${OS_PASS:-}"
+OPENSEARCH_INITIAL_ADMIN_PASSWORD="${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-}"
 
 # Canonical cert location (your choice)
 RI_ETC_BASE="/etc/recursive-ir"
@@ -59,10 +49,10 @@ dpkg_ver() { dpkg -s "$1" 2>/dev/null | awk -F': ' '/^Version:/{print $2}'; }
 need_root
 export DEBIAN_FRONTEND=noninteractive
 
-if [[ -z "${OS_PASS}" ]]; then
-  echo "ERROR: Set OS_PASS (required for OpenSearch fresh installs)."
+if [[ -z "${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" ]]; then
+  echo "ERROR: Set OPENSEARCH_INITIAL_ADMIN_PASSWORD (required for OpenSearch fresh installs)."
   echo "Example:"
-  echo "  sudo OS_PASS='StrongPassHere' $0"
+  echo "  sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='StrongPassHere' $0"
   exit 1
 fi
 
@@ -81,14 +71,36 @@ require_cmd dpkg
 mkdir -p /etc/apt/keyrings
 
 # =========================
-# Add OpenSearch APT repo + install
+# Add OpenSearch APT repos + install
 # =========================
 section "Add OpenSearch APT repo and install OpenSearch + Dashboards"
-curl -fsSL https://artifacts.opensearch.org/publickeys/opensearch-release.pgp \
-  | gpg --dearmor -o /etc/apt/keyrings/opensearch.gpg
 
-cat > /etc/apt/sources.list.d/opensearch.list <<EOF
-deb [signed-by=/etc/apt/keyrings/opensearch.gpg] https://artifacts.opensearch.org/releases/bundle/opensearch/${OS_APT_MAJOR}/apt stable main
+install -m 0755 -d /etc/apt/keyrings
+
+# Use the official keyring name/path (matches OpenSearch docs)
+curl -fsSL https://artifacts.opensearch.org/publickeys/opensearch-release.pgp \
+  | gpg --dearmor --batch --yes -o /etc/apt/keyrings/opensearch-release-keyring
+
+chmod 0644 /etc/apt/keyrings/opensearch-release-keyring
+
+# Remove any existing list files that reference the same OpenSearch repo with a different signed-by,
+# which triggers: "Conflicting values set for option Signed-By ..."
+for f in /etc/apt/sources.list.d/*.list; do
+  [[ -f "$f" ]] || continue
+  if grep -qE 'artifacts\.opensearch\.org/releases/bundle/opensearch/' "$f" \
+     || grep -qE 'artifacts\.opensearch\.org/releases/bundle/opensearch-dashboards/' "$f"; then
+    rm -f "$f"
+  fi
+done
+
+# OpenSearch repo
+cat > /etc/apt/sources.list.d/opensearch-${OS_APT_MAJOR}.list <<EOF
+deb [signed-by=/etc/apt/keyrings/opensearch-release-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch/${OS_APT_MAJOR}/apt stable main
+EOF
+
+# OpenSearch Dashboards repo (THIS is what fixes "Unable to locate package opensearch-dashboards")
+cat > /etc/apt/sources.list.d/opensearch-dashboards-${OS_APT_MAJOR}.list <<EOF
+deb [signed-by=/etc/apt/keyrings/opensearch-release-keyring] https://artifacts.opensearch.org/releases/bundle/opensearch-dashboards/${OS_APT_MAJOR}/apt stable main
 EOF
 
 # Tolerate releaseinfo change if needed
@@ -96,7 +108,7 @@ if ! apt-get update; then
   apt-get update --allow-releaseinfo-change
 fi
 
-env OS_PASS="${OS_PASS}" \
+env OPENSEARCH_INITIAL_ADMIN_PASSWORD="${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
   apt-get install -y opensearch opensearch-dashboards
 
 systemctl enable opensearch opensearch-dashboards
@@ -124,9 +136,18 @@ systemctl disable filebeat 2>/dev/null || true
 # =========================
 # Generate TLS certs (non-interactive)
 # =========================
+#
+# ------------------------------------------------------------------
+# Remove OpenSearch demo certificates
+# ------------------------------------------------------------------
+echo "[+] Removing demo certificates"
+sudo sh -c 'rm -f /etc/opensearch/*.pem'
+sudo sh -c 'rm -f /etc/opensearch/*temp.pem /etc/opensearch/*.csr /etc/opensearch/*.ext'
+
 section "Generate OpenSearch TLS (self-signed CA) under ${RI_CERTS_OS}"
 mkdir -p "${RI_CERTS_OS}"
-chmod 700 "${RI_CERTS_OS}"
+chown root:opensearch "${RI_CERTS_OS}"
+chmod 0750 "${RI_CERTS_OS}"
 
 # Root CA
 openssl genrsa -out "${RI_CA_KEY}" 2048
@@ -169,9 +190,70 @@ openssl x509 -req -in "${RI_CERTS_OS}/node.csr" \
   -extensions req_ext -extfile "${RI_CERTS_OS}/node.cnf"
 rm -f "${RI_CERTS_OS}/node.csr" "${RI_CERTS_OS}/node.cnf"
 
-# Permissions: CA/world-readable is fine; keys restricted
-chmod 644 "${RI_CA}" "${RI_NODE_CERT}" "${RI_ADMIN_CERT}"
-chmod 600 "${RI_CA_KEY}" "${RI_NODE_KEY}" "${RI_ADMIN_KEY}"
+# ------------------------------------------------------------------
+# TLS file permissions (securityadmin runs as root)
+# - OpenSearch runtime needs: CA cert, node cert, node key
+# - Keep CA key + admin key root-only
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# FIX: allow opensearch to traverse /etc/recursive-ir/... to reach certs
+# (opensearch is not in group 'recursive', so 2770 root:recursive blocks it)
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# TLS file permissions
+# - OpenSearch runtime needs: CA cert, node cert, node key
+# - OpenSearch Dashboards needs: CA cert (public) to trust https
+# - Keep CA key + admin key root-only
+# ------------------------------------------------------------------
+
+# Allow traversal for BOTH opensearch + opensearch-dashboards (simple mode)
+# Dashboards must be able to reach the CA file path; easiest is +x for others on dirs.
+sudo chown root:opensearch "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
+sudo chmod 0755 "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
+
+# Make sure opensearch can traverse /etc/opensearch (paranoia)
+sudo chown root:opensearch /etc/opensearch
+sudo chmod 0750 /etc/opensearch
+
+# --- OpenSearch runtime TLS material ---
+# CA is public; Dashboards reads it too.
+sudo chown root:opensearch "${RI_CA}"
+sudo chmod 0644 "${RI_CA}"
+
+# Node cert can be group-readable.
+sudo chown root:opensearch "${RI_NODE_CERT}"
+sudo chmod 0640 "${RI_NODE_CERT}"
+
+# Node key MUST be readable by the opensearch service user.
+# Tightest: make opensearch the owner and keep 0600.
+sudo chown opensearch:opensearch "${RI_NODE_KEY}"
+sudo chmod 0600 "${RI_NODE_KEY}"
+
+# --- Root-only secrets (service does NOT need these) ---
+sudo chown root:root "${RI_CA_KEY}" "${RI_ADMIN_KEY}"
+sudo chmod 0600 "${RI_CA_KEY}" "${RI_ADMIN_KEY}"
+
+# Admin cert not needed by the running service; keep it readable for root
+sudo chown root:root "${RI_ADMIN_CERT}"
+sudo chmod 0644 "${RI_ADMIN_CERT}"
+
+# (Optional) serial file isn't needed by the service; keep it root-only or group-readable
+# chown root:root "${RI_CERTS_OS}/root-ca.srl" 2>/dev/null || true
+# chmod 0644 "${RI_CERTS_OS}/root-ca.srl" 2>/dev/null || true
+#
+# ------------------------------------------------------------------
+# Remove OpenSearch demo security configuration
+# ------------------------------------------------------------------
+
+OSYML="/etc/opensearch/opensearch.yml"
+
+if grep -q "Start OpenSearch Security Demo Configuration" "$OSYML"; then
+    echo "[+] Removing OpenSearch demo security configuration block"
+    
+    sudo sed -i '/Start OpenSearch Security Demo Configuration/,/End OpenSearch Security Demo Configuration/d' "$OSYML"
+fi
 
 # =========================
 # Configure OpenSearch (single-node, loopback, TLS)
@@ -230,7 +312,7 @@ if [[ ! -x "${OS_SEC_TOOLS}" ]]; then
   exit 1
 fi
 
-"${OS_SEC_TOOLS}" \
+OPENSEARCH_JAVA_HOME=/usr/share/opensearch/jdk "${OS_SEC_TOOLS}" \
   -cd /etc/opensearch/opensearch-security/ \
   -cacert "${RI_CA}" \
   -cert "${RI_ADMIN_CERT}" \
@@ -243,77 +325,82 @@ fi
 section "Configure OpenSearch Dashboards to use ${OS_URL_LOCAL} + CA"
 DASH_YML="/etc/opensearch-dashboards/opensearch_dashboards.yml"
 
+# Ensure OpenSearch Dashboards trusts the Recursive-IR CA
 if ! grep -q "Recursive-IR Dashboards block" "${DASH_YML}"; then
   cat >> "${DASH_YML}" <<EOF
 
-######## Recursive-IR Dashboards block (managed by installer) ########
-opensearch.hosts: ["${OS_URL_LOCAL}"]
-opensearch.username: "admin"
-opensearch.password: "${OS_PASS}"
+# Recursive-IR Dashboards block (managed by installer)
 opensearch.ssl.certificateAuthorities: ["${RI_CA}"]
-######## End Recursive-IR Dashboards block ########
+# End Recursive-IR Dashboards block
 EOF
 fi
 
 # =========================
-# Install Recursive-IR branding assets into OpenSearch Dashboards (local /ui/assets)
+# Install Recursive-IR branding assets into OpenSearch Dashboards
 # =========================
-section "Install Recursive-IR branding assets (Dashboards /ui/assets)"
+section "Install Recursive-IR branding assets"
 
-# Source images (prefer installer-synced assets, fallback to repo path)
+# Source images ONLY from repo UI build output
 SRC_IMAGES=""
-if [[ -d "${RI_ETC_BASE:-/etc/recursive-ir}/assets/images" ]]; then
-  SRC_IMAGES="${RI_ETC_BASE:-/etc/recursive-ir}/assets/images"
-elif [[ -d "${RI_REPO_ROOT:-}/web/docker/ui/recursive-ir/public/assets/images" ]]; then
-  SRC_IMAGES="${RI_REPO_ROOT}/web/docker/ui/recursive-ir/public/assets/images"
+
+if [[ -n "${RI_REPO_ROOT:-}" && -d "${RI_REPO_ROOT}/web/ui/dist/assets/images" ]]; then
+  SRC_IMAGES="${RI_REPO_ROOT}/web/ui/dist/assets/images"
+
+elif [[ -d "./web/ui/dist/assets/images" ]]; then
+  SRC_IMAGES="./web/ui/dist/assets/images"
 fi
 
 if [[ -z "${SRC_IMAGES}" ]]; then
-  echo "[branding] ERROR: could not find branding source images."
-  echo "  expected either:"
-  echo "    - /etc/recursive-ir/assets/images"
-  echo "    - <repo>/web/docker/ui/recursive-ir/public/assets/images"
+  echo "[branding] ERROR: UI build output not found."
+  echo "Expected:"
+  echo "  web/ui/dist/assets/images"
+  echo ""
+  echo "Run the UI build first."
   exit 1
 fi
 
-# Find Dashboards "ui/assets" directory (served at /ui/assets)
+echo "[branding] Using source images: ${SRC_IMAGES}"
+
 OSD_HOME="/usr/share/opensearch-dashboards"
-ASSETS_DIR=""
+
+# Determine Dashboards assets root
+ASSETS_ROOT=""
 for d in \
+  "${OSD_HOME}/assets" \
+  "${OSD_HOME}/ui/assets" \
   "${OSD_HOME}/src/core/server/core_app/assets" \
   "${OSD_HOME}/core/server/core_app/assets" \
-  "${OSD_HOME}/ui/assets" \
-  "${OSD_HOME}/assets" \
 ; do
   if [[ -d "$d" ]]; then
-    ASSETS_DIR="$d"
+    ASSETS_ROOT="$d"
     break
   fi
 done
 
-if [[ -z "${ASSETS_DIR}" ]]; then
-  echo "[branding] ERROR: could not find Dashboards assets dir under ${OSD_HOME}"
+if [[ -z "${ASSETS_ROOT}" ]]; then
+  echo "[branding] ERROR: could not locate Dashboards assets directory."
   exit 1
 fi
 
-mkdir -p "${ASSETS_DIR}/images"
+# Match working dev layout
+RI_ASSETS_DIR="${ASSETS_ROOT}/recursive-ir"
+mkdir -p "${RI_ASSETS_DIR}"
 
-# Copy branding images
-install -m 0644 "${SRC_IMAGES}/recursive-ir-banner.png"        "${ASSETS_DIR}/images/"
-install -m 0644 "${SRC_IMAGES}/recursive-ir-banner-light.png"  "${ASSETS_DIR}/images/"
-install -m 0644 "${SRC_IMAGES}/recursive-ir-logo-dark.png"     "${ASSETS_DIR}/images/"
-install -m 0644 "${SRC_IMAGES}/recursive-ir-logo-light.png"    "${ASSETS_DIR}/images/"
-install -m 0644 "${SRC_IMAGES}/recursive-ir-spinner-light.gif" "${ASSETS_DIR}/images/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-banner.png"        "${RI_ASSETS_DIR}/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-banner-light.png"  "${RI_ASSETS_DIR}/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-logo-dark.png"     "${RI_ASSETS_DIR}/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-logo-light.png"    "${RI_ASSETS_DIR}/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-spinner-light.gif" "${RI_ASSETS_DIR}/"
 
-echo "[branding] Installed images into: ${ASSETS_DIR}/images"
-ls -la "${ASSETS_DIR}/images" | sed -n '1,120p'
+echo "[branding] Installed images into: ${RI_ASSETS_DIR}"
+ls -la "${RI_ASSETS_DIR}" | sed -n '1,120p'
 
 # =========================
-# Configure Dashboards branding to use local /ui/assets paths
+# Configure OpenSearch Dashboards branding
 # =========================
-section "Configure OpenSearch Dashboards branding (local /ui/assets)"
+section "Configure OpenSearch Dashboards branding"
 
-# Remove old managed branding block (if any), then append the current one.
+# Remove old managed block
 if grep -q "Recursive-IR Branding block (managed by installer)" "${DASH_YML}"; then
   awk '
     BEGIN{drop=0}
@@ -324,23 +411,24 @@ if grep -q "Recursive-IR Branding block (managed by installer)" "${DASH_YML}"; t
   mv "${DASH_YML}.tmp" "${DASH_YML}"
 fi
 
+# Append branding block
 cat >> "${DASH_YML}" <<'EOF'
 
 ######## Recursive-IR Branding block (managed by installer) ########
 opensearchDashboards.branding:
   applicationTitle: "Recursive-IR"
   logo:
-    defaultUrl: "/ui/assets/images/recursive-ir-banner.png"
-    darkModeUrl: "/ui/assets/images/recursive-ir-banner.png"
+    defaultUrl: "/ui/assets/recursive-ir/recursive-ir-banner.png"
+    darkModeUrl: "/ui/assets/recursive-ir/recursive-ir-banner.png"
   mark:
-    defaultUrl: "/ui/assets/images/recursive-ir-logo-dark.png"
-    darkModeUrl: "/ui/assets/images/recursive-ir-logo-dark.png"
+    defaultUrl: "/ui/assets/recursive-ir/recursive-ir-logo-dark.png"
+    darkModeUrl: "/ui/assets/recursive-ir/recursive-ir-logo-dark.png"
   loadingLogo:
-    defaultUrl: "/ui/assets/images/recursive-ir-spinner-light.gif"
-    darkModeUrl: "/ui/assets/images/recursive-ir-spinner-light.gif"
-  faviconUrl: "/ui/assets/images/recursive-ir-logo-dark.png"
+    defaultUrl: "/ui/assets/recursive-ir/recursive-ir-spinner-light.gif"
+    darkModeUrl: "/ui/assets/recursive-ir/recursive-ir-spinner-light.gif"
+  faviconUrl: "/ui/assets/recursive-ir/recursive-ir-logo-dark.png"
 
-opensearch_security.ui.basicauth.login.brandimage: "/ui/assets/images/recursive-ir-banner-light.png"
+opensearch_security.ui.basicauth.login.brandimage: "/ui/assets/recursive-ir/recursive-ir-banner-light.png"
 opensearch_security.ui.basicauth.login.title: "Welcome to Recursive-IR"
 ######## End Recursive-IR Branding block ########
 EOF
@@ -348,21 +436,29 @@ EOF
 systemctl restart opensearch-dashboards
 
 # =========================
-# Install Recursive-IR systemd units for Logstash + Filebeat
-# (use your shipped configs under /etc/recursive-ir)
+# Install Recursive-IR systemd units for Logstash + Filebeat (APT install)
+# - Disable vendor units shipped by APT
+# - Install our units pointing at /etc/recursive-ir configs
 # =========================
 section "Install Recursive-IR systemd units for Logstash + Filebeat"
 
 mkdir -p "${RI_LOGSTASH_ETC}" "${RI_FILEBEAT_ETC}" "${RI_ETC_BASE}/conf"
 
-# Ensure data/log dirs expected by your units and shipped configs
+# Ensure data/log dirs expected by our units and shipped configs
 mkdir -p \
   /var/lib/recursive-ir/{logstash,filebeat} \
   /var/log/recursive-ir/{logstash,filebeat}
 
+# Stop + disable vendor services (APT installs /usr/lib/systemd/system/*)
+# We do NOT delete vendor unit files; we override by installing into /etc/systemd/system/.
+systemctl stop filebeat logstash 2>/dev/null || true
+systemctl disable filebeat logstash 2>/dev/null || true
+systemctl reset-failed filebeat logstash 2>/dev/null || true
+
 # Logstash user is typically created by package, but keep safe:
 id -u logstash >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin logstash
 
+# ---- Logstash (Recursive-IR override unit) ----
 cat > /etc/systemd/system/logstash.service <<'UNIT'
 [Unit]
 Description=Logstash (Recursive-IR)
@@ -380,11 +476,14 @@ WorkingDirectory=/usr/share/logstash
 StandardOutput=journal
 StandardError=journal
 LimitNOFILE=65536
+TimeoutStopSec=infinity
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 
+# ---- Filebeat (Recursive-IR override unit) ----
+# NOTE: For APT installs, the binary is /usr/share/filebeat/bin/filebeat (NOT /usr/share/filebeat/filebeat).
 cat > /etc/systemd/system/filebeat.service <<'UNIT'
 [Unit]
 Description=Filebeat (Recursive-IR)
@@ -393,7 +492,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/share/filebeat/filebeat -e -c /etc/recursive-ir/filebeat/filebeat.yml \
+ExecStart=/usr/share/filebeat/bin/filebeat -e -c /etc/recursive-ir/filebeat/filebeat.yml \
   -E path.home=/usr/share/filebeat \
   -E path.config=/etc/recursive-ir/filebeat \
   -E path.data=/var/lib/recursive-ir/filebeat \
@@ -405,7 +504,7 @@ WantedBy=multi-user.target
 UNIT
 
 chown -R logstash:logstash /var/lib/recursive-ir/logstash /var/log/recursive-ir/logstash || true
-chown -R root:root /var/lib/recursive-ir/filebeat /var/log/recursive-ir/filebeat || true
+chown -R root:root       /var/lib/recursive-ir/filebeat /var/log/recursive-ir/filebeat || true
 
 systemctl daemon-reload
 systemctl enable logstash filebeat
@@ -433,7 +532,7 @@ section "Verification: OpenSearch TLS/auth (no -k)"
 OS_TLS_OK="FAIL"
 if curl --fail --silent \
   --cacert "${RI_CA}" \
-  -u "admin:${OS_PASS}" \
+  -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
   "${OS_URL_LOCAL}" >/dev/null; then
   OS_TLS_OK="OK"
 fi
@@ -452,7 +551,7 @@ FB_STATUS="$(systemctl is-active filebeat || true)"
 CLUSTER_STATUS="unknown"
 if [[ "${OS_TLS_OK}" == "OK" ]]; then
   CLUSTER_STATUS="$(curl --silent --cacert "${RI_CA}" \
-    -u "admin:${OS_PASS}" \
+    -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
     "${OS_URL_LOCAL}/_cluster/health" \
     | sed -n 's/.*"status":"\([^"]*\)".*/\1/p' | head -n1 || true)"
   [[ -n "${CLUSTER_STATUS}" ]] || CLUSTER_STATUS="unknown"
