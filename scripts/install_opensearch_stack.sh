@@ -255,6 +255,96 @@ opensearch.ssl.certificateAuthorities: ["${RI_CA}"]
 EOF
 fi
 
+# =========================
+# Install Recursive-IR branding assets into OpenSearch Dashboards (local /ui/assets)
+# =========================
+section "Install Recursive-IR branding assets (Dashboards /ui/assets)"
+
+# Source images (prefer installer-synced assets, fallback to repo path)
+SRC_IMAGES=""
+if [[ -d "${RI_ETC_BASE:-/etc/recursive-ir}/assets/images" ]]; then
+  SRC_IMAGES="${RI_ETC_BASE:-/etc/recursive-ir}/assets/images"
+elif [[ -d "${RI_REPO_ROOT:-}/web/docker/ui/recursive-ir/public/assets/images" ]]; then
+  SRC_IMAGES="${RI_REPO_ROOT}/web/docker/ui/recursive-ir/public/assets/images"
+fi
+
+if [[ -z "${SRC_IMAGES}" ]]; then
+  echo "[branding] ERROR: could not find branding source images."
+  echo "  expected either:"
+  echo "    - /etc/recursive-ir/assets/images"
+  echo "    - <repo>/web/docker/ui/recursive-ir/public/assets/images"
+  exit 1
+fi
+
+# Find Dashboards "ui/assets" directory (served at /ui/assets)
+OSD_HOME="/usr/share/opensearch-dashboards"
+ASSETS_DIR=""
+for d in \
+  "${OSD_HOME}/src/core/server/core_app/assets" \
+  "${OSD_HOME}/core/server/core_app/assets" \
+  "${OSD_HOME}/ui/assets" \
+  "${OSD_HOME}/assets" \
+; do
+  if [[ -d "$d" ]]; then
+    ASSETS_DIR="$d"
+    break
+  fi
+done
+
+if [[ -z "${ASSETS_DIR}" ]]; then
+  echo "[branding] ERROR: could not find Dashboards assets dir under ${OSD_HOME}"
+  exit 1
+fi
+
+mkdir -p "${ASSETS_DIR}/images"
+
+# Copy branding images
+install -m 0644 "${SRC_IMAGES}/recursive-ir-banner.png"        "${ASSETS_DIR}/images/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-banner-light.png"  "${ASSETS_DIR}/images/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-logo-dark.png"     "${ASSETS_DIR}/images/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-logo-light.png"    "${ASSETS_DIR}/images/"
+install -m 0644 "${SRC_IMAGES}/recursive-ir-spinner-light.gif" "${ASSETS_DIR}/images/"
+
+echo "[branding] Installed images into: ${ASSETS_DIR}/images"
+ls -la "${ASSETS_DIR}/images" | sed -n '1,120p'
+
+# =========================
+# Configure Dashboards branding to use local /ui/assets paths
+# =========================
+section "Configure OpenSearch Dashboards branding (local /ui/assets)"
+
+# Remove old managed branding block (if any), then append the current one.
+if grep -q "Recursive-IR Branding block (managed by installer)" "${DASH_YML}"; then
+  awk '
+    BEGIN{drop=0}
+    /######## Recursive-IR Branding block \(managed by installer\) ########/{drop=1; next}
+    /######## End Recursive-IR Branding block ########/{drop=0; next}
+    drop==0{print}
+  ' "${DASH_YML}" > "${DASH_YML}.tmp"
+  mv "${DASH_YML}.tmp" "${DASH_YML}"
+fi
+
+cat >> "${DASH_YML}" <<'EOF'
+
+######## Recursive-IR Branding block (managed by installer) ########
+opensearchDashboards.branding:
+  applicationTitle: "Recursive-IR"
+  logo:
+    defaultUrl: "/ui/assets/images/recursive-ir-banner.png"
+    darkModeUrl: "/ui/assets/images/recursive-ir-banner.png"
+  mark:
+    defaultUrl: "/ui/assets/images/recursive-ir-logo-dark.png"
+    darkModeUrl: "/ui/assets/images/recursive-ir-logo-dark.png"
+  loadingLogo:
+    defaultUrl: "/ui/assets/images/recursive-ir-spinner-light.gif"
+    darkModeUrl: "/ui/assets/images/recursive-ir-spinner-light.gif"
+  faviconUrl: "/ui/assets/images/recursive-ir-logo-dark.png"
+
+opensearch_security.ui.basicauth.login.brandimage: "/ui/assets/images/recursive-ir-banner-light.png"
+opensearch_security.ui.basicauth.login.title: "Welcome to Recursive-IR"
+######## End Recursive-IR Branding block ########
+EOF
+
 systemctl restart opensearch-dashboards
 
 # =========================
