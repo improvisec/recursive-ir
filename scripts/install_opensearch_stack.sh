@@ -1,4 +1,4 @@
-
+#!/bin/bash
 # ------------------------------------------------------------------
 # Recursive-IR installer script
 # Copyright (c) 2026 Mark Jayson Alvarez
