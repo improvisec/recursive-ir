@@ -315,15 +315,6 @@ plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access
 EOF
 fi
 
-
-# -------------------------
-# Ensure OpenSearch log directory permissions
-# (prevents JVM gc.log permission failure)
-# -------------------------
-mkdir -p /var/log/opensearch
-chown -R opensearch:opensearch /var/log/opensearch
-chmod 0755 /var/log/opensearch
-
 systemctl restart opensearch
 
 # =========================
@@ -526,6 +517,10 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 UNIT
+
+section "Install required libraries"
+
+apt-get install -y libcurl4 unzip
 
 chown -R logstash:logstash /var/lib/recursive-ir/logstash /var/log/recursive-ir/logstash || true
 chown -R root:root       /var/lib/recursive-ir/filebeat /var/log/recursive-ir/filebeat || true

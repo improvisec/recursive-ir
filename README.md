@@ -73,11 +73,12 @@ This installs and configures:
 ---
 
 
-## 3️⃣ Bootstrap Recursive-IR
+## 3️⃣ Bootstrap Recursive-IR and start Logstash and Filebeat Services
 The following command initializes Recursive-IR services, databases, and default configuration files (/etc/recursive-ir/conf/)
 
 ```bash
 sudo ./bin/dfir init --bootstrap-env --enable 
+sudo systemctl start logstash filebeat
 ```
 After recursive-ir has been bootstrapped, ./bin prefix is no longer needed when running dfir commands.
 
