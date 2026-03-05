@@ -5,7 +5,7 @@ Recursive-IR is a single-binary orchestration that transforms an OpenSearch stac
 ![diagram](assets/images/recursive-ir-diagram.png)
 
 
-Recursive-IR enables collaborative case-centric investigations with persistent enrichments such as tags, comments, and analyst context, while fully leveraging the strengths of OpenSearch and native OpenSearch Dashboards — scalable observability, visualisation, and Security Analytics for alerting and correlation across ingested forensic artefacts.
+Recursive-IR enables collaborative case-centric investigations with persistent enrichments such as tags, comments, and analyst context, while fully leveraging the strengths of OpenSearch and native OpenSearch Dashboards — scalable observability, visualisation, and Security Analytics for alerting and correlation across ingested forensics artefacts.
 
 ![screenshot](assets/images/recursive-ir-screenshot.png)
 
@@ -254,7 +254,7 @@ This starts:
 (Note: Nginx is required to access OpenSearch Dashboards from the network)
 ---
 
-## 6️⃣ AccessRecursive-IR (OpenSearch Dashboards)
+## 6️⃣ Access Recursive-IR
 
 From another machine on the network, type this on your browser in order to access Recursive-IR (OpenSearch Dashboards). Use "admin" as the username and the password set in OPENSEARCH_INITIAL_ADMIN_PASSWORD during the initial installation of OpenSearch stack.
 
