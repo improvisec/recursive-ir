@@ -1,5 +1,9 @@
+
 # ------------------------------------------------------------------
-# Recursive-IR Full Stack Installer (APT-only)
+# Recursive-IR installer script
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
 # OpenSearch + OpenSearch Dashboards + Logstash + Filebeat
 #
 # Fresh-install focused:
@@ -189,17 +193,6 @@ openssl x509 -req -in "${RI_CERTS_OS}/node.csr" \
   -out "${RI_NODE_CERT}" -days 730 -sha256 \
   -extensions req_ext -extfile "${RI_CERTS_OS}/node.cnf"
 rm -f "${RI_CERTS_OS}/node.csr" "${RI_CERTS_OS}/node.cnf"
-
-# ------------------------------------------------------------------
-# TLS file permissions (securityadmin runs as root)
-# - OpenSearch runtime needs: CA cert, node cert, node key
-# - Keep CA key + admin key root-only
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
-# FIX: allow opensearch to traverse /etc/recursive-ir/... to reach certs
-# (opensearch is not in group 'recursive', so 2770 root:recursive blocks it)
-# ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
 # TLS file permissions
@@ -512,7 +505,6 @@ systemctl enable logstash filebeat
 # We do NOT start Logstash/Filebeat automatically unless configs exist.
 # - Logstash unit requires recursive.env
 # - Filebeat requires filebeat.yml
-# You said dfir init --bootstrap-env will create recursive.env from sample.
 if [[ -f "${RI_CONF_ENV}" ]]; then
   systemctl start logstash || true
 else
