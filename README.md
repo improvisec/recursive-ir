@@ -170,7 +170,7 @@ sudo apt-get update
 sudo apt-get install -y   docker-ce   docker-ce-cli   containerd.io   docker-buildx-plugin   docker-compose-plugin
 
 cd web
-docker compose --env-file /etc/recursive-ir/conf/recursive.env up -d --pull always
+sudo docker compose --env-file /etc/recursive-ir/conf/recursive.env up -d --pull always
 ```
 This starts:
 
