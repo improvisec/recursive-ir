@@ -188,7 +188,7 @@ The nginx gateway proxies connections to the following:
 - Recursive-IR UI → `/recursive-ir/`
 - Recursive-IR API → `/recursive-ir/api/v1`
 
-After logging in, a tenant selection will be presented. Global tenant is the main investigation workspace for the admin user. Non-admin users also has access to the same Global tenant but can only make modifications in their own Private tenant (e.g., creating saved searches, visualisations, and dashboards).
+After logging in, a tenant selection will be presented. Global tenant is the main investigation workspace for the admin user. Non-admin users also have access to the same Global tenant but can only make modifications in their own Private tenant (e.g., creating saved searches, visualisations, and dashboards).
 
 
 ![diagram](assets/images/tenant_selection.png)
@@ -238,7 +238,7 @@ Recursive-IR is currently actively being developed. As such, all CLI commands li
 
 ---
 
-## ➕ Add a New Parser (CLI)
+## ➕ Adding a New Parser Definition 
 
 The first step in using the platform is adding new parser definitions. By default, Recursive-IR ships with a number of sample parsers, that can be enabled by modifying the enabled setting in:
 
@@ -249,9 +249,9 @@ The first step in using the platform is adding new parser definitions. By defaul
 An example parser command that adds a parser definition to convert EVTX logs into jsonl format is shown below:
 
 ```bash
-dfir parser new -t evtx --patterns "*.evtx" --bin evtx_dump --args '-o,jsonl,--no-confirm-overwrite,-f,{out},{in}' -f
+dfir parser new -t evtx --patterns "*.evtx" --bin evtx_dump --args '-o,jsonl,--no-confirm-overwrite,-f,{out},{in}' 
 ```
-The command above means that any file in *.evtx format shall be handled by the program evtx_dump (parsers can be found or put into bin/ folder of the recursive-ir repository for convenience). The command above will create the following entry in parsers.yml (if it doesn't exist yet).
+The command above means that any file in *.evtx format shall be handled by the program evtx_dump (parsers can be found or put into bin/ folder of the recursive-ir repository for convenience). The command above will create the following entry in parsers.yml (if it doesn't exist yet or unless -f or --force is specified).
 
 ```
   evtx:
@@ -305,7 +305,7 @@ OpenSearch index template file:
 
 ---
 
-## 📂 Create a New Case
+## 📂 Creating a New Case
 Events in the Recursive-IR OpenSearch Dashboard can be grouped logically into different cases. Each event will have a case_id associated with it that can be used for filtering. This allows forensics investigator and incident responders to work on multiple cases, although a dedicated box is still recommended for complete isolation. The following command creates a new case.
 
 
@@ -323,14 +323,14 @@ This will:
     ├── enrichments/
     └── case_manifest.json
 ```
+- Create additional timestamp_timezone field that is useful if the investigation involves multiple timezones (e.g., either the artefacts sources or the analysts working on the case).
 - Initialize case manifest that will be ingested into OpenSearch.
-- Creates additional timestamp_timezone field that is useful if the investigation involves multiple timezones (e.g., either the artefacts sources or the analysts working on the case).
 
 ![cases](assets/images/cases.png)
 
 ---
 
-## 🖥 Add a Host into a Case
+## 🖥 Adding a Host into a Case
 Every case will contain one or more hosts where artefacts will be dropped for ingestion. Similar to the case creation, adding a new host creates the metadata file that will be ingested into OpenSearch. Artefacts dropped into the host's inbox folder will also have the host_ip field created that can be used to identify all events belonging to a particular host. If an artefacts source does not have an IP address (e.g., cloud-related artefacts, any IP address can be specified (e.g., 127.0.0.1) just for tracking. The following excample command adds a new host to an existing case (only case_id and ip are mandatory, see -h for details):
 
 
