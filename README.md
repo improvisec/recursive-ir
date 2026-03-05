@@ -300,13 +300,13 @@ Logstash pipeline configuration files:
 ```
 OpenSearch index template file:
 ```
-/etc/recursive-ir/opensearch/templates
+/etc/recursive-ir/opensearch/templates/<source_type>-template.json
 ```
 
 ---
 
 ## 📂 Creating a New Case
-Events in the Recursive-IR OpenSearch Dashboard can be grouped logically into different cases. Each event will have a case_id associated with it that can be used for filtering. This allows forensics investigator and incident responders to work on multiple cases, although a dedicated box is still recommended for complete isolation. The following command creates a new case.
+Events in the Recursive-IR can be grouped logically into different cases. Each event will have a case_id associated with it that can be used for filtering. This allows forensics investigator and incident responders to work on multiple cases, although a dedicated box is still recommended for complete isolation. The following command creates a new case.
 
 
 ```bash
@@ -354,11 +354,11 @@ The command above will perform the following:
     │       └── host_manifest.json
     └── case_manifest.json
 ```
-- Initialize a host manifest that will be ingested into Opensearch. 
+- Initialize a host manifest that will be ingested into OpenSearch. 
 
 ---
 
-## 📥 Drop Artefacts into a Host's Inbox
+## 📥 Dropping Artefacts into a Host's Inbox folder
 
 Once the host has been created, artefacts can now be dropped into that host's inbox folder in:
 
@@ -376,10 +376,11 @@ The dfir-parser service will automatically:
 - Detect artefacts dropped into the raw_artefacts/<source_type/ folder.
 - Spawn child process to run and parse the artefacts according to the parsers.yml entries.
 - Write the resulting jsonl file into jsonified_artefacts/<source_type/. Filebeat constantly monitors these folders, so it can hand over the events to Logstash for ingestion into OpenSearch.
+- Create an artefacts_manifest entry for every parsed artefact. This allows tracking of every artefact ingested into Recursive-IR (i.e., via artefacts-manifest-* data view). 
 
 ---
 
-## 👤 Create a new New User
+## 👤 Creating a new New User
 
 To access the Recursive-IR's OpenSearch Dashboards, a user can be created using the following command.
 
@@ -434,7 +435,7 @@ Certain enrichments can be added in bulk such as tags, iocs, and collections by 
 From Pivot event, a any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
 
 - Wildcard search (`.wc` fields) - A search for *search_term* anywhere in the field. This is the most accurate search but is slightly slower than word search. 
-- Word search - A search for "search_term" using Opensearch's text analysers where fields are broken down into tokens to perform lighting fast searches. This is achieved by creating a "reverse index" mapping each token into events where such token appears.
+- Word search - A search for "search_term" using OpenSearch's text analysers where fields are broken down into tokens to perform lighting fast searches. This is achieved by creating a "reverse index" mapping each token into events where such token appears.
 - OpenSearch Discover deep-link - Takes the user back to OpenSearch Dashboards' Discover to perform the search there.
 
 Both wildcard and word searches can be performed in the advanced search modal:
