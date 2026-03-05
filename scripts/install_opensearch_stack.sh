@@ -315,6 +315,15 @@ plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access
 EOF
 fi
 
+
+# -------------------------
+# Ensure OpenSearch log directory permissions
+# (prevents JVM gc.log permission failure)
+# -------------------------
+mkdir -p /var/log/opensearch
+chown -R opensearch:opensearch /var/log/opensearch
+chmod 0755 /var/log/opensearch
+
 systemctl restart opensearch
 
 # =========================
