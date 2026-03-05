@@ -143,6 +143,13 @@ OSD_HOST_LAN="http://<your-server-ip>"
 
 ---
 
+## 5️⃣  Start Logstash and Filebeat
+```
+sudo systemctl start filebeat logstash
+```
+
+---
+
 ## 5️⃣  Deploy Recursive-IR Web UI, API, and Nginx Docker containers 
 
 Recursive-IR web components run in Docker.
