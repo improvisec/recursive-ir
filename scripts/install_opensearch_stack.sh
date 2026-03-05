@@ -115,6 +115,19 @@ fi
 env OPENSEARCH_INITIAL_ADMIN_PASSWORD="${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
   apt-get install -y opensearch opensearch-dashboards
 
+# -------------------------
+# Ensure OpenSearch keystore exists before first start
+# (prevents: unable to create temporary keystore /etc/opensearch/opensearch.keystore.tmp)
+# -------------------------
+if [ ! -f /etc/opensearch/opensearch.keystore ]; then
+  echo "opensearch: creating /etc/opensearch/opensearch.keystore"
+  /usr/share/opensearch/bin/opensearch-keystore create
+
+  # Typical Debian/RPM perms: readable by root, group-readable by opensearch
+  chown root:opensearch /etc/opensearch/opensearch.keystore
+  chmod 0640 /etc/opensearch/opensearch.keystore
+fi
+
 systemctl enable opensearch opensearch-dashboards
 
 # =========================
