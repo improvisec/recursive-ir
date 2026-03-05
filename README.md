@@ -531,6 +531,15 @@ To make the search results more useable for analysis (e.g., to filter out noise 
 ![field_stats](assets/images/field_stats.png)
 
 
+## 🔍 The Investigation Pivot Tree
+
+Hovering over to the left edge of the UI will bring out the Investigation tree. This is sort of like an automatically created breadcrumbs everytime a new pivot event is loaded or searches are performed. This tree keeps track of the analyst's investigation by logging what searches are performed, how a particular event was found, e.g., by pivoting from one event to another. In OpenSearch Dashboards, this could be similar to some degree to "saved searches", but without the user having to manually save anything. The tree can be cleared anytime as needed.
+
+
+![pivot_tree](assets/images/pivot_tree.png)
+
+
+
 ---
 
 # 📁 Directory Layout
