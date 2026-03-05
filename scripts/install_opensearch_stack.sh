@@ -228,6 +228,15 @@ sudo chmod 0750 /etc/opensearch
 sudo chown root:opensearch "${RI_CA}"
 sudo chmod 0644 "${RI_CA}"
 
+# ------------------------------------------------------------------
+# Trust Recursive-IR root CA system-wide (so curl/dfir can talk to https://127.0.0.1:9200)
+# ------------------------------------------------------------------
+section "Install Recursive-IR root CA into system trust store"
+
+RI_CA_DST="/usr/local/share/ca-certificates/recursive-ir-root-ca.crt"
+install -m 0644 "${RI_CA}" "${RI_CA_DST}"
+update-ca-certificates
+
 # Node cert can be group-readable.
 sudo chown root:opensearch "${RI_NODE_CERT}"
 sudo chmod 0640 "${RI_NODE_CERT}"
