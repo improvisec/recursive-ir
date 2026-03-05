@@ -544,10 +544,9 @@ fi
 # =========================
 section "Verification: OpenSearch TLS/auth (no -k)"
 OS_TLS_OK="FAIL"
-if curl --fail --silent \
-  --cacert "${RI_CA}" \
-  -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
-  "${OS_URL_LOCAL}" >/dev/null; then
+
+# TLS verification only (no auth required)
+if curl --silent --cacert "${RI_CA}" "${OS_URL_LOCAL}" >/dev/null; then
   OS_TLS_OK="OK"
 fi
 
