@@ -72,96 +72,15 @@ This installs and configures:
 
 ---
 
-### 📁 Stack Directory Layout
-
-After installation, the core components live in the following locations:
-
-#### 🔎 OpenSearch
-
-| Path | Purpose |
-|------|---------|
-| `/var/lib/opensearch/` | OpenSearch data directory |
-| `/var/log/opensearch/` | OpenSearch logs |
-| `/etc/opensearch/` | OpenSearch configuration |
-| `/etc/recursive-ir/certs/opensearch/` | TLS certificates (CA, node, admin) |
-
-OpenSearch listens on:
-
-```
-https://127.0.0.1:9200
-```
-
----
-
-#### 📊 OpenSearch Dashboards
-
-| Path | Purpose |
-|------|---------|
-| `/etc/opensearch-dashboards/` | Dashboards configuration |
-| `/var/log/opensearch-dashboards/` | Dashboards logs |
-
-Dashboards listens on:
-
-```
-http://127.0.0.1:5601
-```
-
-External access is handled by nginx (accessible via OSD_HOST_LAN).
-
----
-
-#### 🔁 Logstash 
-
-| Path | Purpose |
-|------|---------|
-| `/usr/share/logstash/` | Logstash binaries
-| `/etc/recursive-ir/logstash/` | Recursive-IR Logstash pipelines + config |
-| `/var/lib/recursive-ir/logstash/` | Logstash data + dead letter queue |
-| `/var/log/recursive-ir/logstash/` | Logstash logs |
-
----
-
-#### 📦 Filebeat 
-
-| Path | Purpose |
-|------|---------|
-| `/usr/share/filebeat/` | Filebeat binaries
-| `/etc/recursive-ir/filebeat/` | Recursive-IR Filebeat input files + config|
-| `/var/lib/recursive-ir/filebeat/` | Filebeat registry/state |
-| `/var/log/recursive-ir/filebeat/` | Filebeat logs |
-
----
-
-#### 🗂 Recursive-IR 
-
-| Path | Purpose |
-|------|---------|
-| `/etc/recursive-ir/` | Main configuration directory |
-| `/etc/recursive-ir/conf/recursive.env` | Runtime environment configuration |
-| `/etc/recursive-ir/filebeat` | Filebeat input configuration files |
-| `/etc/recursive-ir/logstash` | Logstash pipeline configuration files |
-| `/var/log/recursive-ir/cases/` | Main artefacts storage (raw + jsonl-converted |
-| `/var/lib/recursive-ir/` | Jobs database |
-
----
-
-#### 🔐 TLS Certificates
-
-All OpenSearch TLS materials are stored under:
-
-```
-/etc/recursive-ir/certs/opensearch/
-```
----
 
 ## 3️⃣ Bootstrap Recursive-IR
-After recursive-ir has been bootstrapped, ./bin prefix is no longer needed when running dfir commands.
+The following command initializes Recursive-IR services, databases, and default configuration files (/etc/recursive-ir/conf/)
 
 ```bash
 sudo ./bin/dfir init --bootstrap-env --enable 
 ```
+After recursive-ir has been bootstrapped, ./bin prefix is no longer needed when running dfir commands.
 
-This initializes Recursive-IR services, databases, and default configuration files (/etc/recursive-ir/conf/)
 
 The following services will also be installed:
 
@@ -374,12 +293,15 @@ Filebeat input configuration file:
 ```
 /etc/recursive-ir/filebeat/inputs.d/<source_type>.yml
 ```
-Logstash pipeline configuration file:
+Logstash pipeline configuration files:
 ```
 /etc/recursive-ir/logstash/pipelines.yml
 /etc/recursive-ir/logstash/pipelines/nnn-<source_type>.conf
 ```
-
+OpenSearch index template file:
+```
+/etc/recursive-ir/opensearch/templates
+```
 
 ---
 
@@ -402,7 +324,7 @@ This will:
     └── case_manifest.json
 ```
 - Initialize case manifest that will be ingested into OpenSearch.
-- Creates additional timestamp_<timezone> field that is useful if the investigation involves multiple timezones (e.g., either the artefacts sources or the analysts working on the case).
+- Creates additional timestamp_timezone field that is useful if the investigation involves multiple timezones (e.g., either the artefacts sources or the analysts working on the case).
 
 ![cases](assets/images/cases.png)
 
@@ -544,6 +466,82 @@ Hovering over to the left edge of the UI will bring out the Investigation tree. 
 
 # 📁 Directory Layout
 
+#### 🔎 OpenSearch
+
+| Path | Purpose |
+|------|---------|
+| `/var/lib/opensearch/` | OpenSearch data directory |
+| `/var/log/opensearch/` | OpenSearch logs |
+| `/etc/opensearch/` | OpenSearch configuration |
+| `/etc/recursive-ir/certs/opensearch/` | TLS certificates (CA, node, admin) |
+
+OpenSearch listens on:
+
+```
+https://127.0.0.1:9200
+```
+
+---
+
+#### 📊 OpenSearch Dashboards
+
+| Path | Purpose |
+|------|---------|
+| `/etc/opensearch-dashboards/` | Dashboards configuration |
+| `/var/log/opensearch-dashboards/` | Dashboards logs |
+
+Dashboards listens on:
+
+```
+http://127.0.0.1:5601
+```
+
+External access is handled by nginx (accessible via OSD_HOST_LAN).
+
+---
+
+#### 🔁 Logstash 
+
+| Path | Purpose |
+|------|---------|
+| `/usr/share/logstash/` | Logstash binaries
+| `/etc/recursive-ir/logstash/` | Recursive-IR Logstash pipelines + config |
+| `/var/lib/recursive-ir/logstash/` | Logstash data + dead letter queue |
+| `/var/log/recursive-ir/logstash/` | Logstash logs |
+
+---
+
+#### 📦 Filebeat 
+
+| Path | Purpose |
+|------|---------|
+| `/usr/share/filebeat/` | Filebeat binaries
+| `/etc/recursive-ir/filebeat/` | Recursive-IR Filebeat input files + config|
+| `/var/lib/recursive-ir/filebeat/` | Filebeat registry/state |
+| `/var/log/recursive-ir/filebeat/` | Filebeat logs |
+
+---
+
+#### 🗂 Recursive-IR 
+
+| Path | Purpose |
+|------|---------|
+| `/etc/recursive-ir/` | Main configuration directory |
+| `/etc/recursive-ir/conf/recursive.env` | Runtime environment configuration |
+| `/etc/recursive-ir/filebeat` | Filebeat input configuration files |
+| `/etc/recursive-ir/logstash` | Logstash pipeline configuration files |
+| `/var/log/recursive-ir/cases/` | Main artefacts storage (raw + jsonl-converted |
+| `/var/lib/recursive-ir/` | Jobs database |
+
+---
+
+#### 🔐 TLS Certificates
+
+All OpenSearch TLS materials are stored under:
+
+```
+/etc/recursive-ir/certs/opensearch/
+```
 ---
 
 ## Configuration Files
