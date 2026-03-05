@@ -59,7 +59,7 @@ cd recursive-ir
 ## 2️⃣ Install OpenSearch Stack (via apt)
 
 ```bash
-sudo OPENSEARCH_INITIAL_ADDMIN_PASSWORD='StrongPasswordHere' \
+sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='StrongPasswordHere' \
   ./scripts/install_opensearch_stack.sh
 ```
 
