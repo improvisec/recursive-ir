@@ -208,6 +208,7 @@ As the final step, the following commands will seed the OpenSearch with default 
 
 ```bash
 sudo dfir os templates-push
+sudo dfir osd patterns-push
 sudo dfir osd settings-sync
 ```
 
