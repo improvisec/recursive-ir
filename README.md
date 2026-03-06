@@ -56,11 +56,11 @@ cd recursive-ir
 
 ---
 
-## 2️⃣ Install OpenSearch Stack (via apt)
+## 2️⃣ Install OpenSearch Stack and Recursive-IR 
 
 ```bash
 sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='Recursive-IR-2026!' \
-  ./scripts/install_opensearch_stack.sh
+  ./scripts/install.sh
 ```
 
 This installs and configures:
@@ -69,92 +69,13 @@ This installs and configures:
 - OpenSearch Dashboards (loopback only)
 - Logstash
 - Filebeat 
-
-Note: Logstash and Filebeat services are intentionally left inactive in this step and will be activated in Step #5 after ```/etc/recursive-ir/conf/recursive.env``` has been updated in step #4.
-
----
-
-
-## 3️⃣ Bootstrap Recursive-IR 
-The following command initializes Recursive-IR services, databases, and default configuration files (/etc/recursive-ir/conf/)
-
-```bash
-sudo ./bin/dfir init --bootstrap-env --enable 
-```
-After recursive-ir has been bootstrapped, ./bin prefix is no longer needed when running dfir commands.
-
-
-The following services will also be installed:
-
+- Recursive IR Web UI Docker container
+- Recursive IR Web API Docker container
+- Nginx proxy Docker container
 
 ---
 
-## 4️⃣ Configure Environment
-
-Edit:
-
-```bash
-sudo nano /etc/recursive-ir/conf/recursive.env
-```
-
-Update:
-
-```bash
-OS_USER="admin"
-OS_PASS="Recursive-IR-2026!"
-
-# LAN host/IP used for UI + OSD deep links
-OSD_HOST_LAN="http://<your-server-ip>"
-```
-
-⚠ Replace `<your-server-ip>` with the actual IP or hostname of your server.
-
-| Variable | Description |
-|----------|------------|
-| `OS_HOST` | Internal OpenSearch endpoint (loopback) |
-| `OSD_HOST` | Internal OpenSearch-Dashboards (loopback) |
-| `OSD_HOST_LAN` | Public host/IP users will access via nginx |
-
----
-
-## 5️⃣  Start Logstash and Filebeat
-```
-sudo systemctl start filebeat logstash
-```
-
----
-
-## 6️⃣  Deploy Recursive-IR Web UI, API, and Nginx Docker containers 
-
-Recursive-IR web components run in Docker.
-
----
-
-
-```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg |   sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-echo   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-https://download.docker.com/linux/ubuntu \
-$(. /etc/os-release && echo "$VERSION_CODENAME") stable" |   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install -y   docker-ce   docker-ce-cli   containerd.io   docker-buildx-plugin   docker-compose-plugin
-
-cd web
-sudo docker compose --env-file /etc/recursive-ir/conf/recursive.env up -d --pull always
-```
-This starts:
-
-- FastAPI backend
-- Recursive-IR Web UI
-- Nginx reverse proxy
-(Note: Nginx is required to access OpenSearch Dashboards from the network)
----
-
-## 7️⃣Login to Recursive-IR for the first time 
+## 3️⃣ Login to Recursive-IR for the first time 
 
 From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant to further push Recursive-IR custom OpenSearch Dashboards settings in the next and final step.
 
@@ -174,7 +95,7 @@ After logging in, a tenant selection will be presented. Global tenant is the mai
 
 ![diagram](assets/images/tenant_selection.png)
 
-## 8️⃣Push OpenSearch Templates and OpenSearch-Dashboards Settings
+## 4️⃣Push OpenSearch Templates and OpenSearch-Dashboards Settings
 
 As the final step, the following commands will seed the OpenSearch with default index templates and the OpenSearch Dashboards with default settings.
 
