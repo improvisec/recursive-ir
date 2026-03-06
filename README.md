@@ -65,6 +65,7 @@ This installs and configures:
 - Recursive IR Web UI container
 - Recursive IR Web API container
 - Nginx proxy container
+- "recursive" user account. Use ```sudo psaswd recursive``` to set its password. 
 
 ---
 
@@ -149,6 +150,11 @@ The first step in using the platform is adding new parser definitions. By defaul
 
 ```
 /etc/recursive-ir/conf/parsers.yml
+```
+After enabling sample parser definitions, push the templates and data views:
+```
+sudo dfir os templates-push
+sudo dfir osd patterns-push
 ```
 
 An example parser command that adds a parser definition to convert EVTX logs into jsonl format is shown below:
