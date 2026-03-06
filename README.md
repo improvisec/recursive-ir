@@ -322,6 +322,8 @@ OpenSearch index template file:
 /etc/recursive-ir/opensearch/templates/<source_type>-template.json
 ```
 
+Important: When enabling sample parser definitions that ship with Recursive-IR, you will need to run ```dfir os templates-push``` and ```dfir osd patterns-push``` in order to prepare both OpenSearch and OpenSearch Dashboards for log ingestion.
+
 ---
 
 ## 📂 Creating a New Case
