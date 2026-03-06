@@ -26,7 +26,7 @@ types:
   hayabusa:
     enabled: false
     patterns: ["*.evtx"]
-    bin: hayabusa
+    bin: /home/recursive/target/release/hayabusa
     args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "-f", "{in}"]
     route_mode: walk
     inherit_type: false

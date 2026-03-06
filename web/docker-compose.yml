@@ -23,8 +23,8 @@ services:
         bind:
           create_host_path: false
       - type: bind
-        source: /etc/recursive-ir/logstash/certs
-        target: /etc/recursive-ir/logstash/certs
+        source: /etc/recursive-ir/certs/opensearch
+        target: /etc/recursive-ir/certs/opensearch
         read_only: true
       - type: bind
         source: /etc/recursive-ir/conf/tags
