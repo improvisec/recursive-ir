@@ -115,7 +115,7 @@ docker ps
 Check OpenSearch:
 
 ```bash
-curl --cacert /etc/recursive-ir/certs/opensearch/root-ca.pem \
+sudo curl --cacert /etc/recursive-ir/certs/opensearch/root-ca.pem \
   -u admin:'Recursive-IR-2026!'\
   https://127.0.0.1:9200/_cluster/health?pretty
 ```

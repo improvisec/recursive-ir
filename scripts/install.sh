@@ -19,7 +19,6 @@
 # Settings (override via env)
 # =========================
 OS_APT_MAJOR="${OS_APT_MAJOR:-3.x}"            # OpenSearch APT "3.x" track
-ELASTIC_APT_MAJOR="${ELASTIC_APT_MAJOR:-8.x}" # Elastic APT track for logstash/filebeat packages
 OPENSEARCH_INITIAL_ADMIN_PASSWORD="${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-}"
 
 # Canonical cert location (your choice)
@@ -147,43 +146,128 @@ fi
 systemctl enable opensearch opensearch-dashboards
 
 # =========================
-# Add Elastic APT repo + install Logstash + Filebeat
+# Install Logstash + Filebeat from latest tarballs
 # =========================
-section "Add Elastic APT repo and install Logstash + Filebeat (APT)"
-curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch \
-  | gpg --dearmor -o /etc/apt/keyrings/elastic.gpg
+section "Install Logstash + Filebeat from latest Elastic tarballs"
 
-cat > /etc/apt/sources.list.d/elastic.list <<EOF
-deb [signed-by=/etc/apt/keyrings/elastic.gpg] https://artifacts.elastic.co/packages/${ELASTIC_APT_MAJOR}/apt stable main
-EOF
+RI_TMP_DL="/tmp/recursive-ir-elastic"
+mkdir -p "${RI_TMP_DL}"
 
-apt-get update
-apt-get install -y logstash filebeat
+echo "Checking for the latest Elastic version..."
+ELASTIC_VERSION="$(curl -fsSL https://api.github.com/repos/elastic/logstash/tags | grep -m 1 '"name":' | cut -d '"' -f 4 | sed 's/^v//')"
 
-# Install OpenSearch output plugin if missing
-LS_PLUGIN_BIN="/usr/share/logstash/bin/logstash-plugin"
-
-if [[ ! -x "${LS_PLUGIN_BIN}" ]]; then
-  echo "ERROR: logstash-plugin not found at ${LS_PLUGIN_BIN}"
+if [[ -z "${ELASTIC_VERSION}" ]]; then
+  echo "ERROR: Could not determine the latest Elastic version."
   exit 1
 fi
 
-if "${LS_PLUGIN_BIN}" list | grep -q '^logstash-output-opensearch$'; then
+echo "Latest version found: ${ELASTIC_VERSION}"
+
+ARCH="linux-x86_64"
+BASE_URL="https://artifacts.elastic.co/downloads"
+LOGSTASH_URL="${BASE_URL}/logstash/logstash-oss-${ELASTIC_VERSION}-${ARCH}.tar.gz"
+FILEBEAT_URL="${BASE_URL}/beats/filebeat/filebeat-${ELASTIC_VERSION}-${ARCH}.tar.gz"
+
+LS_TGZ="${RI_TMP_DL}/logstash-oss-${ELASTIC_VERSION}-${ARCH}.tar.gz"
+FB_TGZ="${RI_TMP_DL}/filebeat-${ELASTIC_VERSION}-${ARCH}.tar.gz"
+
+echo "Downloading Logstash from: ${LOGSTASH_URL}"
+curl -fL -o "${LS_TGZ}" "${LOGSTASH_URL}"
+
+echo "Downloading Filebeat from: ${FILEBEAT_URL}"
+curl -fL -o "${FB_TGZ}" "${FILEBEAT_URL}"
+
+rm -rf \
+  /usr/share/recursive-ir/logstash \
+  /usr/share/recursive-ir/filebeat \
+  /usr/share/recursive-ir/logstash-* \
+  /usr/share/recursive-ir/filebeat-*
+mkdir -p /usr/share/recursive-ir
+
+LS_EXTRACTED_DIR="${RI_TMP_DL}/logstash-${ELASTIC_VERSION}"
+FB_EXTRACTED_DIR="${RI_TMP_DL}/filebeat-${ELASTIC_VERSION}-${ARCH}"
+
+rm -rf "${LS_EXTRACTED_DIR}" "${FB_EXTRACTED_DIR}"
+
+tar -xzf "${LS_TGZ}" -C "${RI_TMP_DL}"
+tar -xzf "${FB_TGZ}" -C "${RI_TMP_DL}"
+
+LS_INSTALL_DIR="/usr/share/recursive-ir/logstash-${ELASTIC_VERSION}"
+FB_INSTALL_DIR="/usr/share/recursive-ir/filebeat-${ELASTIC_VERSION}-${ARCH}"
+
+if [[ ! -d "${LS_EXTRACTED_DIR}" ]]; then
+  echo "ERROR: expected extracted Logstash dir not found: ${LS_EXTRACTED_DIR}"
+  exit 1
+fi
+
+if [[ ! -d "${FB_EXTRACTED_DIR}" ]]; then
+  echo "ERROR: expected extracted Filebeat dir not found: ${FB_EXTRACTED_DIR}"
+  exit 1
+fi
+
+rm -rf "${LS_INSTALL_DIR}" "${FB_INSTALL_DIR}"
+
+cp -a "${LS_EXTRACTED_DIR}" "${LS_INSTALL_DIR}"
+cp -a "${FB_EXTRACTED_DIR}" "${FB_INSTALL_DIR}"
+
+ln -sfn "${LS_INSTALL_DIR}" /usr/share/recursive-ir/logstash
+ln -sfn "${FB_INSTALL_DIR}" /usr/share/recursive-ir/filebeat
+
+# Ensure logstash service user exists before assigning ownership
+id -u logstash >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin logstash
+
+chown -R logstash:logstash "${LS_INSTALL_DIR}"
+chown -h logstash:logstash /usr/share/recursive-ir/logstash
+
+chown -R root:root "${FB_INSTALL_DIR}"
+chown -h root:root /usr/share/recursive-ir/filebeat
+
+# Sanity-check expected tarball layout before proceeding
+if [[ ! -x /usr/share/recursive-ir/logstash/bin/logstash ]]; then
+  echo "ERROR: expected Logstash binary not found at /usr/share/recursive-ir/logstash/bin/logstash"
+  exit 1
+fi
+
+if [[ ! -x /usr/share/recursive-ir/logstash/bin/logstash-plugin ]]; then
+  echo "ERROR: expected logstash-plugin not found at /usr/share/recursive-ir/logstash/bin/logstash-plugin"
+  exit 1
+fi
+
+if [[ ! -x /usr/share/recursive-ir/filebeat/filebeat ]]; then
+  echo "ERROR: expected Filebeat binary not found at /usr/share/recursive-ir/filebeat/filebeat"
+  exit 1
+fi
+
+# Install OpenSearch output plugin into the Recursive-IR Logstash tree
+LS_PLUGIN_BIN="/usr/share/recursive-ir/logstash/bin/logstash-plugin"
+
+if [[ ! -x "${LS_PLUGIN_BIN}" ]]; then
+  echo "ERROR: could not find logstash-plugin at ${LS_PLUGIN_BIN}"
+  exit 1
+fi
+
+echo "Using Logstash plugin manager: ${LS_PLUGIN_BIN}"
+
+echo "Checking for logstash-output-opensearch plugin..."
+
+if "${LS_PLUGIN_BIN}" list --verbose 2>/tmp/ri-logstash-plugin-list.err | grep -q '^logstash-output-opensearch '; then
   echo "logstash-output-opensearch already installed"
 else
   echo "Installing logstash-output-opensearch..."
-  "${LS_PLUGIN_BIN}" install logstash-output-opensearch || {
+  if ! "${LS_PLUGIN_BIN}" install logstash-output-opensearch; then
     echo "ERROR: failed to install logstash-output-opensearch"
     exit 1
-  }
+  fi
 fi
 
-if ! "${LS_PLUGIN_BIN}" list | grep -q '^logstash-output-opensearch$'; then
-  echo "ERROR: logstash-output-opensearch still missing after install"
+echo "Verifying logstash-output-opensearch..."
+if ! "${LS_PLUGIN_BIN}" list --verbose 2>/tmp/ri-logstash-plugin-list.err | grep -q '^logstash-output-opensearch '; then
+  echo "ERROR: logstash-output-opensearch not visible after install"
+  cat /tmp/ri-logstash-plugin-list.err 2>/dev/null || true
   exit 1
 fi
 
-# Stop vendor units; we'll run with Recursive-IR config + our own systemd units.
+# Stop any pre-existing services before we install/update our own units later
 systemctl stop logstash 2>/dev/null || true
 systemctl stop filebeat 2>/dev/null || true
 systemctl disable logstash 2>/dev/null || true
@@ -508,10 +592,10 @@ chmod 0750 /var/lib/opensearch
 systemctl restart opensearch-dashboards
 
 # =========================
-# Install Recursive-IR systemd units for Logstash + Filebeat (APT install)
-# - Disable vendor units shipped by APT
+# Install Recursive-IR systemd units for Logstash + Filebeat (tarball install)
 # - Install our units pointing at /etc/recursive-ir configs
 # =========================
+#
 section "Install Recursive-IR systemd units for Logstash + Filebeat"
 
 mkdir -p "${RI_LOGSTASH_ETC}" "${RI_FILEBEAT_ETC}" "${RI_ETC_BASE}/conf"
@@ -521,14 +605,19 @@ mkdir -p \
   /var/lib/recursive-ir/{logstash,filebeat} \
   /var/log/recursive-ir/{logstash,filebeat}
 
-# Stop + disable vendor services (APT installs /usr/lib/systemd/system/*)
-# We do NOT delete vendor unit files; we override by installing into /etc/systemd/system/.
+# Stop/disable any pre-existing units before installing Recursive-IR-managed ones.
 systemctl stop filebeat logstash 2>/dev/null || true
 systemctl disable filebeat logstash 2>/dev/null || true
 systemctl reset-failed filebeat logstash 2>/dev/null || true
 
 # Logstash user is typically created by package, but keep safe:
 id -u logstash >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin logstash
+# Ensure installed tarball trees + symlink have the expected ownership
+chown -R logstash:logstash /usr/share/recursive-ir/logstash-* 2>/dev/null || true
+chown -h logstash:logstash /usr/share/recursive-ir/logstash 2>/dev/null || true
+
+chown -R root:root /usr/share/recursive-ir/filebeat-* 2>/dev/null || true
+chown -h root:root /usr/share/recursive-ir/filebeat 2>/dev/null || true
 
 # ---- Logstash (Recursive-IR override unit) ----
 cat > /etc/systemd/system/logstash.service <<'UNIT'
@@ -542,9 +631,9 @@ Type=simple
 EnvironmentFile=/etc/recursive-ir/conf/recursive.env
 User=logstash
 Group=logstash
-ExecStart=/usr/share/logstash/bin/logstash --path.settings /etc/recursive-ir/logstash
+ExecStart=/usr/share/recursive-ir/logstash/bin/logstash --path.settings /etc/recursive-ir/logstash
 Restart=always
-WorkingDirectory=/usr/share/logstash
+WorkingDirectory=/usr/share/recursive-ir/logstash
 StandardOutput=journal
 StandardError=journal
 LimitNOFILE=65536
@@ -554,8 +643,7 @@ TimeoutStopSec=infinity
 WantedBy=multi-user.target
 UNIT
 
-# ---- Filebeat (Recursive-IR override unit) ----
-# NOTE: For APT installs, the binary is /usr/share/filebeat/bin/filebeat (NOT /usr/share/filebeat/filebeat).
+# ---- Filebeat (Recursive-IR unit) ----
 cat > /etc/systemd/system/filebeat.service <<'UNIT'
 [Unit]
 Description=Filebeat (Recursive-IR)
@@ -564,8 +652,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/share/filebeat/bin/filebeat -e -c /etc/recursive-ir/filebeat/filebeat.yml \
-  -E path.home=/usr/share/filebeat \
+ExecStart=/usr/share/recursive-ir/filebeat/filebeat -e -c /etc/recursive-ir/filebeat/filebeat.yml \
+  -E path.home=/usr/share/recursive-ir/filebeat \
   -E path.config=/etc/recursive-ir/filebeat \
   -E path.data=/var/lib/recursive-ir/filebeat \
   -E path.logs=/var/log/recursive-ir/filebeat
@@ -575,7 +663,7 @@ Restart=always
 WantedBy=multi-user.target
 UNIT
 
-section "Install required libraries"
+section "Install required runtime libraries"
 
 apt-get install -y libcurl4 unzip
 
@@ -595,7 +683,7 @@ if [[ ! -x "./bin/dfir" ]]; then
   exit 1
 fi
 
-sudo ./bin/dfir init --bootstrap-env --enable
+sudo ./bin/dfir init --bootstrap-env --enable --create-recursive-user
 
 
 # =========================
@@ -698,8 +786,20 @@ fi
 section "Collect versions + service statuses"
 OS_VER="$(dpkg_ver opensearch || true)"
 OSD_VER="$(dpkg_ver opensearch-dashboards || true)"
-LS_VER="$(dpkg_ver logstash || true)"
-FB_VER="$(dpkg_ver filebeat || true)"
+
+LS_VER="unknown"
+FB_VER="unknown"
+
+if [[ -L /usr/share/recursive-ir/logstash ]]; then
+  LS_VER="$(basename "$(readlink -f /usr/share/recursive-ir/logstash)")"
+  LS_VER="${LS_VER#logstash-}"
+fi
+
+if [[ -L /usr/share/recursive-ir/filebeat ]]; then
+  FB_VER="$(basename "$(readlink -f /usr/share/recursive-ir/filebeat)")"
+  FB_VER="${FB_VER#filebeat-}"
+  FB_VER="${FB_VER%-linux-x86_64}"
+fi
 
 OS_STATUS="$(systemctl is-active opensearch || true)"
 OSD_STATUS="$(systemctl is-active opensearch-dashboards || true)"
