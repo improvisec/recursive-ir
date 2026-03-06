@@ -49,6 +49,8 @@ cd recursive-ir
 
 ## 2️⃣ Install OpenSearch Stack and Recursive-IR 
 
+Recursive-IR comes with an installer script that automates everything needed to bring up the whole stack. Running the script might take several minutes as it downloads the needed packages (OpenSearch/OpenSearch Dashboards), and tarballs (Filebeat, Logstash), as well as the Docker images for Recursive-IR's web UI, API, and Nginx containers. The admin password specified in the below command MUST be a strong one, otherwise, installation may not be successful (e.g., logins to the platform may fail.)
+
 ```bash
 sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='Recursive-IR-2026!' \
   ./scripts/install.sh

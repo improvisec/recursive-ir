@@ -4,10 +4,8 @@
 # Copyright (c) 2026 Mark Jayson Alvarez
 # Licensed under the Recursive-IR License
 # ------------------------------------------------------------------
-# OpenSearch + OpenSearch Dashboards + Logstash + Filebeat
+# OpenSearch + OpenSearch Dashboards + Logstash + Filebeat + Recursive-IR web ui/api, nginx
 #
-# Fresh-install focused:
-# - No idempotency, no migration logic
 # - Single-node + loopback only (127.0.0.1)
 # - Non-interactive TLS generation (self-signed CA)
 # - Does NOT modify /etc/recursive-ir/conf/recursive.env
