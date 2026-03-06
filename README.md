@@ -70,6 +70,8 @@ This installs and configures:
 - Logstash
 - Filebeat 
 
+Note: Logstash and Filebeat services are intentionally left inactive in this step and will be activated in Step #5 after ```/etc/recursive-ir/conf/recursive.env``` has been updated in step #4.
+
 ---
 
 
@@ -150,7 +152,7 @@ sudo systemctl start filebeat logstash
 
 ---
 
-## 5️⃣  Deploy Recursive-IR Web UI, API, and Nginx Docker containers 
+## 6️⃣  Deploy Recursive-IR Web UI, API, and Nginx Docker containers 
 
 Recursive-IR web components run in Docker.
 
@@ -180,9 +182,9 @@ This starts:
 (Note: Nginx is required to access OpenSearch Dashboards from the network)
 ---
 
-## 6️⃣ Login to Recursive-IR for the first time 
+## 7️⃣Login to Recursive-IR for the first time 
 
-From another machine on the network, type this on your browser in order to access Recursive-IR (OpenSearch Dashboards) for the first time to create the required objects in OpenSearch Dashboards. Use "admin" as the username and the password set in OPENSEARCH_INITIAL_ADMIN_PASSWORD during the initial installation of OpenSearch stack.
+From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant to further push Recursive-IR custom OpenSearch Dashboards settings in the next and final step.
 
 ```
 http://<your-server-ip>/
@@ -195,18 +197,18 @@ The nginx gateway proxies connections to the following:
 - Recursive-IR UI → `/recursive-ir/`
 - Recursive-IR API → `/recursive-ir/api/v1`
 
-After logging in, a tenant selection will be presented. Global tenant is the main investigation workspace for the admin user. Non-admin users also have access to the same Global tenant but can only make modifications in their own Private tenant (e.g., creating saved searches, visualisations, and dashboards).
+After logging in, a tenant selection will be presented. Global tenant is the main investigation workspace for the admin user. Non-admin users also have access to the same Global tenant but can only make modifications in their own Private tenants (e.g., creating saved searches, visualisations, and dashboards).
 
 
 ![diagram](assets/images/tenant_selection.png)
 
-## 7️⃣ Push OpenSearch Templates and OpenSearch-Dashboards Settings
+## 8️⃣Push OpenSearch Templates and OpenSearch-Dashboards Settings
 
-The following commands will seed the OpenSearch with default index templates and the OpenSearch Dashboards with default settings.
+As the final step, the following commands will seed the OpenSearch with default index templates and the OpenSearch Dashboards with default settings.
 
 ```bash
-dfir os templates-push
-dfir osd settings-sync
+sudo dfir os templates-push
+sudo dfir osd settings-sync
 ```
 
 ---
