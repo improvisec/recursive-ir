@@ -86,34 +86,6 @@ After recursive-ir has been bootstrapped, ./bin prefix is no longer needed when 
 
 The following services will also be installed:
 
-1. dfir-watcher - Watches folders for any artefacts dropped into:
-
-```
- /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/inbox
-```
-and routes them into:
-
-```
- /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/raw_artefacts/<source_type>
-```
-
-2. dfir-parser - Watches files from the raw_artefacts/<source_type> folder above and runs corresponding parsers that will convert them into jsonl format. All jsonified_artefacts/<source_type> folders are monitored by Filebeat and jsonl files are fed into Logstash for OpenSearch Ingestion:
-
-```
- /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/jsonified_artefacts/<source_type>
-```
-
-3. dfir-enricher - Runs periodically to see if there are any enrichments in the database that need to be projected into OpenSearch. This allows the enrichments such as tags and comments to persist (e.g., during case reloads).
-
-```
-/var/log/recursive-ir/cases/<case_id>/enrichments/data.mdb
-```
-
-4. dfir-worker - Constaintly monitors the database for new jobs submitted via the API through the Web UI.
-
-```
-/var/lib/recursive-ir/web/jobs.db
-```
 
 ---
 
@@ -598,6 +570,41 @@ All OpenSearch TLS materials are stored under:
     └── enrichments
     └── case_manifest.json
 ```
+
+---
+
+#  Systemd Units 
+
+
+## dfir-watcher - Watches folders for any artefacts dropped into:
+
+```
+ /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/inbox
+```
+and routes them into:
+
+```
+ /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/raw_artefacts/<source_type>
+```
+
+## dfir-parser - Watches files from the raw_artefacts/<source_type> folder above and runs corresponding parsers that will convert them into jsonl format. All jsonified_artefacts/<source_type> folders are monitored by Filebeat and jsonl files are fed into Logstash for OpenSearch Ingestion:
+
+```
+ /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/jsonified_artefacts/<source_type>
+```
+
+## dfir-enricher - Runs periodically to see if there are any enrichments in the database that need to be projected into OpenSearch. This allows the enrichments such as tags and comments to persist (e.g., during case reloads).
+
+```
+/var/log/recursive-ir/cases/<case_id>/enrichments/data.mdb
+```
+
+## dfir-worker - Constaintly monitors the database for new jobs submitted via the API through the Web UI.
+
+```
+/var/lib/recursive-ir/web/jobs.db
+```
+
 
 ---
 
