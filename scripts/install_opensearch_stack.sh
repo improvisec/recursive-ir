@@ -221,7 +221,7 @@ sudo chmod 0755 "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
 
 # Make sure opensearch can traverse /etc/opensearch (paranoia)
 sudo chown root:opensearch /etc/opensearch
-sudo chmod 0750 /etc/opensearch
+sudo chmod 0770 /etc/opensearch
 
 # --- OpenSearch runtime TLS material ---
 # CA is public; Dashboards reads it too.
@@ -316,12 +316,17 @@ EOF
 fi
 
 # -------------------------
-# Ensure OpenSearch log directory permissions
-# (prevents JVM gc.log permission failure)
+# Normalize OpenSearch runtime dirs (avoid permission drift across reruns)
 # -------------------------
-mkdir -p /var/log/opensearch
-chown -R opensearch:opensearch /var/log/opensearch
-chmod 0755 /var/log/opensearch
+mkdir -p /var/log/opensearch /var/lib/opensearch
+chown -R opensearch:opensearch /var/log/opensearch /var/lib/opensearch
+chmod 0750 /var/log/opensearch /var/lib/opensearch
+
+# JVM hard-fails if it can't open gc.log
+rm -f /var/log/opensearch/gc.log
+sudo -u opensearch touch /var/log/opensearch/gc.log
+chown opensearch:opensearch /var/log/opensearch/gc.log
+chmod 0640 /var/log/opensearch/gc.log
 
 systemctl restart opensearch
 
@@ -353,7 +358,7 @@ if ! grep -q "Recursive-IR Dashboards block" "${DASH_YML}"; then
   cat >> "${DASH_YML}" <<EOF
 
 # Recursive-IR Dashboards block (managed by installer)
-opensearch.ssl.certificateAuthorities: ["${RI_CA}"]
+opensearch.ssl.certificateAuthorities: ["/etc/ssl/certs/ca-certificates.crt"]
 # End Recursive-IR Dashboards block
 EOF
 fi
@@ -455,6 +460,11 @@ opensearch_security.ui.basicauth.login.brandimage: "/ui/assets/recursive-ir/recu
 opensearch_security.ui.basicauth.login.title: "Welcome to Recursive-IR"
 ######## End Recursive-IR Branding block ########
 EOF
+
+
+mkdir -p /var/lib/opensearch/nodes
+chown -R opensearch:opensearch /var/lib/opensearch
+chmod 0750 /var/lib/opensearch
 
 systemctl restart opensearch-dashboards
 
