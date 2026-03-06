@@ -201,8 +201,13 @@ After logging in, a tenant selection will be presented. Global tenant is the mai
 ![diagram](assets/images/tenant_selection.png)
 
 ## 7️⃣ Push OpenSearch Templates and OpenSearch-Dashboards Settings
+
+The following commands will seed the OpenSearch with default index templates and the OpenSearch Dashboards with default settings.
+
+```bash
 dfir os templates-push
-dfir os settings-sync
+dfir osd settings-sync
+```
 
 ---
 
