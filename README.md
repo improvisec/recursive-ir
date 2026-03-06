@@ -77,7 +77,7 @@ This installs and configures:
 
 ## 3️⃣ Login to Recursive-IR for the first time 
 
-From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant to further push Recursive-IR custom OpenSearch Dashboards settings in the next and final step.
+From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant to further push Recursive-IR custom settings in the next step.
 
 ```
 http://<your-server-ip>/
