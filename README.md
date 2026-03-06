@@ -59,7 +59,7 @@ cd recursive-ir
 ## 2️⃣ Install OpenSearch Stack (via apt)
 
 ```bash
-sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='CHANGE_THIS' \
+sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='Recursive-IR-2026!' \
   ./scripts/install_opensearch_stack.sh
 ```
 
@@ -127,7 +127,7 @@ Update:
 
 ```bash
 OS_USER="admin"
-OS_PASS="CHANGE_THIS"
+OS_PASS="Recursive-IR-2026!"
 
 # LAN host/IP used for UI + OSD deep links
 OSD_HOST_LAN="http://<your-server-ip>"
@@ -229,7 +229,7 @@ Check OpenSearch:
 
 ```bash
 curl --cacert /etc/recursive-ir/certs/opensearch/root-ca.pem \
-  -u admin:CHANGE_THIS\
+  -u admin:'Recursive-IR-2026!'\
   https://127.0.0.1:9200/_cluster/health?pretty
 ```
 
