@@ -180,9 +180,9 @@ This starts:
 (Note: Nginx is required to access OpenSearch Dashboards from the network)
 ---
 
-## 6️⃣ Access Recursive-IR
+## 6️⃣ Login to Recursive-IR for the first time 
 
-From another machine on the network, type this on your browser in order to access Recursive-IR (OpenSearch Dashboards). Use "admin" as the username and the password set in OPENSEARCH_INITIAL_ADMIN_PASSWORD during the initial installation of OpenSearch stack.
+From another machine on the network, type this on your browser in order to access Recursive-IR (OpenSearch Dashboards) for the first time to create the required objects in OpenSearch Dashboards. Use "admin" as the username and the password set in OPENSEARCH_INITIAL_ADMIN_PASSWORD during the initial installation of OpenSearch stack.
 
 ```
 http://<your-server-ip>/
@@ -199,6 +199,10 @@ After logging in, a tenant selection will be presented. Global tenant is the mai
 
 
 ![diagram](assets/images/tenant_selection.png)
+
+## 7️⃣ Push OpenSearch Templates and OpenSearch-Dashboards Settings
+dfir os templates-push
+dfir os settings-sync
 
 ---
 
