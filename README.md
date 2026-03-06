@@ -77,7 +77,7 @@ This installs and configures:
 
 ## 3️⃣ Login to Recursive-IR for the first time 
 
-From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant to further push Recursive-IR custom settings in the next step.
+From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant in order to push Recursive-IR custom settings in the next step.
 
 ```
 http://<your-server-ip>/
@@ -296,7 +296,7 @@ The dfir-parser service will automatically:
 
 ## 👤 Creating a new New User
 
-To access the Recursive-IR's OpenSearch Dashboards, a user can be created using the following command.
+To allow collaborative investigations, additional non-admin users can be created using the following command:
 
 ```bash
 sudo dfir user allow bob@example.com --os-create --print-password
@@ -497,7 +497,7 @@ All OpenSearch TLS materials are stored under:
 #  Systemd Units 
 
 
-## dfir-watcher - Watches folders for any artefacts dropped into:
+- dfir-watcher - Watches for artefacts dropped into a host inbox folder:
 
 ```
  /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/inbox
@@ -508,19 +508,19 @@ and routes them into:
  /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/raw_artefacts/<source_type>
 ```
 
-## dfir-parser - Watches files from the raw_artefacts/<source_type> folder above and runs corresponding parsers that will convert them into jsonl format. All jsonified_artefacts/<source_type> folders are monitored by Filebeat and jsonl files are fed into Logstash for OpenSearch Ingestion:
+- dfir-parser - Watches files from the raw_artefacts/<source_type> folder above and runs corresponding parsers that will convert them into jsonl format. All jsonified_artefacts/<source_type> folders are monitored by Filebeat and jsonl files are fed into Logstash for OpenSearch Ingestion:
 
 ```
  /var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/jsonified_artefacts/<source_type>
 ```
 
-## dfir-enricher - Runs periodically to see if there are any enrichments in the database that need to be projected into OpenSearch. This allows the enrichments such as tags and comments to persist (e.g., during case reloads).
+- dfir-enricher - Runs periodically to see if there are any enrichments in the database that need to be projected into OpenSearch. This allows the enrichments such as tags and comments to persist (e.g., during case reloads).
 
 ```
 /var/log/recursive-ir/cases/<case_id>/enrichments/data.mdb
 ```
 
-## dfir-worker - Constaintly monitors the database for new jobs submitted via the API through the Web UI.
+- dfir-worker - Constaintly monitors the database for new jobs submitted via the API through the Web UI.
 
 ```
 /var/lib/recursive-ir/web/jobs.db
