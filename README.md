@@ -59,7 +59,7 @@ cd recursive-ir
 ## 2️⃣ Install OpenSearch Stack (via apt)
 
 ```bash
-sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='StrongPasswordHere' \
+sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='CHANGE_THIS' \
   ./scripts/install_opensearch_stack.sh
 ```
 
@@ -224,7 +224,7 @@ Check OpenSearch:
 
 ```bash
 curl --cacert /etc/recursive-ir/certs/opensearch/root-ca.pem \
-  -u admin:StrongPasswordHere \
+  -u admin:CHANGE_THIS\
   https://127.0.0.1:9200/_cluster/health?pretty
 ```
 
