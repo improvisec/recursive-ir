@@ -34,16 +34,7 @@ Recursive-IR enables collaborative case-centric investigations with persistent e
 
 # 🚀 Quickstart
 
-This guide walks through a **fresh single-node installation** of Recursive-IR on any Ubuntu installation (tested on Ubuntu Server 24.03).
-
-An installer script called ```install_opensearch_stack.sh``` installs and configures:
-
-- OpenSearch
-- OpenSearch Dashboards
-- Logstash
-- Filebeat
-
-The Web API and UI containers and OpenSearch Dashboards are all accessible through nginx which is also deployed via Docker container
+This guide walks you through a **fresh single-node installation** of Recursive-IR on any Ubuntu installation (tested on Ubuntu Server 24.03).
 
 ---
 
@@ -69,9 +60,9 @@ This installs and configures:
 - OpenSearch Dashboards (loopback only)
 - Logstash
 - Filebeat 
-- Recursive IR Web UI Docker container
-- Recursive IR Web API Docker container
-- Nginx proxy Docker container
+- Recursive IR Web UI container
+- Recursive IR Web API container
+- Nginx proxy container
 
 ---
 
