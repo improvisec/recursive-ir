@@ -160,6 +160,29 @@ EOF
 apt-get update
 apt-get install -y logstash filebeat
 
+# Install OpenSearch output plugin if missing
+LS_PLUGIN_BIN="/usr/share/logstash/bin/logstash-plugin"
+
+if [[ ! -x "${LS_PLUGIN_BIN}" ]]; then
+  echo "ERROR: logstash-plugin not found at ${LS_PLUGIN_BIN}"
+  exit 1
+fi
+
+if "${LS_PLUGIN_BIN}" list | grep -q '^logstash-output-opensearch$'; then
+  echo "logstash-output-opensearch already installed"
+else
+  echo "Installing logstash-output-opensearch..."
+  "${LS_PLUGIN_BIN}" install logstash-output-opensearch || {
+    echo "ERROR: failed to install logstash-output-opensearch"
+    exit 1
+  }
+fi
+
+if ! "${LS_PLUGIN_BIN}" list | grep -q '^logstash-output-opensearch$'; then
+  echo "ERROR: logstash-output-opensearch still missing after install"
+  exit 1
+fi
+
 # Stop vendor units; we'll run with Recursive-IR config + our own systemd units.
 systemctl stop logstash 2>/dev/null || true
 systemctl stop filebeat 2>/dev/null || true
