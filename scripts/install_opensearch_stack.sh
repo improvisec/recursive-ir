@@ -610,25 +610,3 @@ printf "%-28s %s\n" "Filebeat Service:" "${FB_STATUS}"
 echo "============================================================"
 echo
 
-echo "Certs (canonical): ${RI_CERTS_OS}"
-echo "  CA:       ${RI_CA}"
-echo "  Node cert:${RI_NODE_CERT}"
-echo "  Admin cert:${RI_ADMIN_CERT}"
-echo
-
-if [[ ! -f "${RI_CONF_ENV}" ]]; then
-  echo "Next steps (Recursive-IR):"
-  echo "  1) dfir init --bootstrap-env"
-  echo "  2) Edit: ${RI_CONF_ENV}"
-  echo "     - Ensure OS_CACERT points to: ${RI_CA}"
-  echo "  3) systemctl start logstash filebeat"
-else
-  echo "Next steps: validate Logstash/Filebeat configs, then:"
-  echo "  systemctl restart logstash filebeat"
-fi
-
-echo
-echo "Useful checks:"
-echo "  curl --cacert ${RI_CA} -u admin:<pass> ${OS_URL_LOCAL}/_cluster/health?pretty"
-echo "  systemctl status opensearch opensearch-dashboards logstash filebeat"
-echo "  journalctl -u opensearch -u opensearch-dashboards -u logstash -u filebeat -f"
