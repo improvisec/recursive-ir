@@ -839,6 +839,8 @@ class IocSearchSubmit(BaseModel):
     # behavior
     include_hits: bool = False
     limit: int = 5000  # only used when include_hits=true (max 10k)
+    page_size: Optional[int] = None
+    search_after: Optional[List[Any]] = None
 
     # - wildcard: substring search on .wc field (best for pivot-from-highlight)
     # - smart: analyzed text search on text field (match/match_phrase)
@@ -869,7 +871,6 @@ class IocSearchSubmit(BaseModel):
         values["smart"] = s
         return values
 
-
 def os_search_ioc(
     case_id: str,
     value: str,
@@ -879,6 +880,7 @@ def os_search_ioc(
     smart: str = "auto",
     include_terms: Optional[Dict[str, List[str]]] = None,
     exclude_terms: Optional[Dict[str, List[str]]] = None,
+    search_after: Optional[List[Any]] = None,
 ) -> Tuple[Optional[dict], Optional[str]]:
     """
     Returns (json, error). Searches within alias all-json, filtered by case_id.
@@ -891,7 +893,11 @@ def os_search_ioc(
           smart="auto": match_phrase if whitespace else match(AND)
           smart="match": match only (AND)
           smart="match_phrase": match_phrase only
+
+    Paging:
+      - search_after: optional cursor from the previous page's last hit sort values
     """
+
     missing = _os_ready()
     if missing:
         return None, missing
@@ -1042,10 +1048,15 @@ def os_search_ioc(
     
     if must_not:
         bool_q["must_not"] = must_not
-    
+
     body = {
         "track_total_hits": True,
         "size": size,
+        "sort": [
+            {"@timestamp": {"order": "desc", "unmapped_type": "date"}},
+            {"_index": {"order": "asc"}},
+            {"_id": {"order": "asc"}},
+        ],
         "_source": {
             "includes": [
                 "@timestamp",
@@ -1063,6 +1074,10 @@ def os_search_ioc(
             "bool": bool_q
         },
     }
+
+    if search_after:
+        body["search_after"] = search_after
+
     try:
         r = requests.post(
             url,
@@ -1195,7 +1210,13 @@ async def search_ioc(req: Request, body: IocSearchSubmit):
     if limit > MAX_BULK_DOCS:
         limit = MAX_BULK_DOCS
 
-    size = limit if include_hits else 0
+    page_size = int(body.page_size or 0)
+    if page_size <= 0:
+        page_size = limit
+    if page_size > MAX_BULK_DOCS:
+        page_size = MAX_BULK_DOCS
+
+    size = page_size if include_hits else 0
 
     mode = (getattr(body, "mode", None) or "wildcard").strip().lower()
     smart = (getattr(body, "smart", None) or "auto").strip().lower()
@@ -1213,7 +1234,8 @@ async def search_ioc(req: Request, body: IocSearchSubmit):
         smart=smart,
         include_terms=body.include_terms,
         exclude_terms=body.exclude_terms,
-    )    
+        search_after=body.search_after,
+    )
     if err:
         return JSONResponse(status_code=500, content={"ok": False, "error": err})
 
@@ -1238,7 +1260,14 @@ async def search_ioc(req: Request, body: IocSearchSubmit):
                     "index": ix,
                     "id": did,
                     "source": src,
-                })                
+                    "sort": h.get("sort"),
+                })
+
+    next_search_after = None
+    if include_hits and out_hits:
+        last_sort = out_hits[-1].get("sort")
+        if isinstance(last_sort, list) and last_sort:
+            next_search_after = last_sort
 
     return {
         "ok": True,
@@ -1250,6 +1279,8 @@ async def search_ioc(req: Request, body: IocSearchSubmit):
         "smart": smart,
         "total": total,
         "returned": len(out_hits),
+        "page_size": page_size if include_hits else 0,
+        "next_search_after": next_search_after,
         "hits": out_hits if include_hits else None,
     }
 
