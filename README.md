@@ -361,7 +361,7 @@ Note: Search feature is currently a work in progress to add features such as pag
 
 ![search_panel](assets/images/search_panel.png)
 
-To make the search results more useable for analysis (e.g., to filter out noise in your data), access the stats panel and create statistics summary for a target field's values and add selected values as either include or exclude filter. Applying the filters will update the search result panel.
+To make the search results more useable for analysis (e.g., to filter out noise in your data), access the stats panel by clicking on any field in the pivot event. This will bring up the Field Statistics panel where values can be filtered (include or exclude) and the search results will be updated immediately. All applied filters will be added to the "Filters" tab. 
 
 
 ![field_stats](assets/images/field_stats.png)
