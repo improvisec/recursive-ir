@@ -929,7 +929,7 @@ def os_search_ioc(
         """
         return f"*{escape_wildcard_literal(raw)}*"
 
-        wildcard_pattern = build_wildcard_pattern(value)
+    wildcard_pattern = build_wildcard_pattern(value)
 
     # ---- query per mode ----
     if mode == "wildcard":
