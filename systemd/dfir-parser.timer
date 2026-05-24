@@ -4,14 +4,14 @@
 # Licensed under the Recursive-IR License
 # ------------------------------------------------------------------
 [Unit]
-Description=Run dfir ingest parse every minute
+Description=Run dfir ingest parse every 10 seconds
 
 [Timer]
-# first run 1 minute after boot
-OnBootSec=1min
+# first run 10 seconds after boot
+OnBootSec=10s
 
-# then every minute after the last successful run
-OnUnitActiveSec=1min
+# then every 10 seconds after the service finishes
+OnUnitInactiveSec=10s
 
 # ensure missed runs are not replayed after long downtime
 Persistent=false
@@ -20,4 +20,3 @@ Unit=dfir-parser.service
 
 [Install]
 WantedBy=timers.target
-

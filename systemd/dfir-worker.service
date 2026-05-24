@@ -9,21 +9,21 @@ After=network-online.target
 Wants=network-online.target
 
 # Do not run until the runtime env exists
-ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+ConditionPathExists=/etc/recursive-ir/env/recursive.env
 
 [Service]
 Type=simple
-User=@RI_USER@
-Group=@RI_GROUP@
+User=dfir
+Group=recursive
 
 # Repo location (written by: dfir init)
-EnvironmentFile=/etc/recursive-ir/conf/paths.env
+EnvironmentFile=/etc/recursive-ir/env/paths.env
 
 # Runtime configuration
-EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+EnvironmentFile=/etc/recursive-ir/env/recursive.env
 
 # Long-running poller
-ExecStart=@RI_BIN@/dfir worker run --env-file /etc/recursive-ir/conf/recursive.env
+ExecStart=/usr/local/bin/dfir worker run --env-file /etc/recursive-ir/env/recursive.env
 
 Restart=always
 RestartSec=2

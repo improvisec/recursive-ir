@@ -1,37 +1,87 @@
 <img src="assets/images/recursive-ir-banner-light.png" alt="Recursive-IR" width="400">
-
+<a id="introduction"></a>
 Recursive-IR is a single-binary orchestration that transforms an OpenSearch stack into a fully capable and customisable DFIR log analytics platform. Incident responders and digital forensics investigators can examine events arranged in a "super timeline" enabling correlation between different source artefacts to better understand the threat actor's full chain of attack.
 
 ![diagram](assets/images/recursive-ir-diagram.png)
 
+It enables collaborative case-centric investigations with persistent enrichments such as tags, comments, and analyst context, while fully leveraging the strengths of OpenSearch and native OpenSearch Dashboards — scalable observability, visualisation, and Security Analytics for alerting and correlation across ingested forensics artefacts.
 
-Recursive-IR enables collaborative case-centric investigations with persistent enrichments such as tags, comments, and analyst context, while fully leveraging the strengths of OpenSearch and native OpenSearch Dashboards — scalable observability, visualisation, and Security Analytics for alerting and correlation across ingested forensics artefacts.
+![diagram](assets/images/pivot_page.png)
 
-![screenshot](assets/images/recursive-ir-screenshot.png)
+The platform offers full control over data being analysed with facilities to resolve data type mapping conflicts, mutating fields (e.g., renaming, copying, or stringifying), normalizing log sources with different timezones, and even selecting fields to be used as @timestamp.  
 
+Artefacts can be reloaded or re-parsed and reloaded easily enabling users to perform modifications such as adding enrichments or mutating fields if needed, a feature which isn't commonly available in traditional SIEMs. 
 
+# Table of Contents
+* [1. Introduction](#introduction)
+* [2. Features](#features)
+* [3. QuickStart](#quickstart)
+* [4. User Guide](#user-guide)
+    * [4.1 Logging in to Recursive-IR](#user-login)
+    * [4.2 Status Cards](#status-cards)
+    * [4.3 Adding Parser Definitions](#new-parser)
+    * [4.4 Creating a New Case](#new-case)
+    * [4.5 Adding a New Host Into a Case](#new-host)
+    * [4.6 Uploading Artefacts](#uploading-artefacts)
+    * [4.7 Creating Users](#new-user)
+    * [4.8 Customizing Columns](#customizing-columns)
+    * [4.9 Selecting @timestamp Fields](#timestamp-fields)
+    * [4.10 Mapping Fields and Resolving Conflicts](#mapping-fields)
+    * [4.11 Reloading Case Artefacts](#reloading-artefacts)
+    * [4.12 Enriching Events](#enriching-events)
+    * [4.13 Pivoting From an Event](#pivoting-event)
+    * [4.14 The Investigation Pivot Tree](#pivot-tree)
+* [5. Directory Layout](#directory-layout)
+* [6. Systemd Units](#systemd-units)
+* [7. Troubleshooting](#troubleshooting)
+* [8. License](#license)
+* [9. Reporting Issues](#reporting-issues)
 ---
-
+<a id="features"></a>
 ## Features 
 
-1. Case-centric investigation - allows grouping of artefacts into individual cases.
-2. Dynamically generate filebeat input config files, logstash pipelines, and OpenSearch index templates to facilitate forensics artefacts ingestion.
-3. Orchestrate arbitrary parsers (e.g., hayabusa, dissect, plaso, evtx_dump,  etc.) to convert forensics artefacts into OpenSearch-ingestable jsonl format. 
-4. Add persistent enrichments to events in OpenSearch such as tags and comments and automatically project them into OpenSearch Dashboards.
-5. Group a specific set of events into "collections" and an easy toggle to add hand-picked events to the final investigation timeline.
-6. Intuitive user interface for event enrichments, marking indicators of compromise, and pivoting during artefacts analysis (e.g., all searches are saved in a "pivot tree". 
-7. Command-line interface, also exposed via web API endpoints.
-8. Config-driven normalisation, e.g., copy, rename, stringify, blobify, derive, or drop fields.
-9. Easily reload/re-ingest forensics artefacts along with any previously added enrichments.
-10. Run ingested artefacts through OpenSearch Security Analytics plugin supporting native Sigma rules, for alerting and correlation during investigations.
-11. Enrich events with geolocation data using Recursive-IR's own custom built mmdb database.
+### Case Management and User Collaboration
 
-... more to come.
+* Case-centric investigations - Users can create one or more cases within the platform.
+* One or more users can be created (e.g., if multiple analysts are working on the same case) and their access to case artefacts is scoped, allowing them to work only on artefacts within their assigned case(s).
+* Case artefacts can be reloaded or re-parsed and reloaded anytime, such as when resolving field-mapping conflicts or during fields normalization. 
 
+### Artefacts Upload and Tracking
+
+* Allows uploading of one or more artefacts into a target host within a case via a web interface or directly in the terminal.
+* Large artefacts are chunked and uploads can be resumed if interrupted.
+* Uploaded artefacts are automatically hashed for tracking and an inventory is created per host.
+* Artefacts of the same file names can be uploaded multiple times and will be handled accordingly (i.e., will not result in duplicate entries).
+* Supports uploading compressed artefacts.
+
+### Parallel Artefacts Parsing
+
+* Orchestrate arbitrary parsers (e.g., hayabusa, dissect, plaso, evtx_dump,  etc.) to convert forensics artefacts into OpenSearch-ingestable jsonl format. 
+* Configurable timezone for each source type for more accurate forensics timelining.
+* Parser command lines are previewed in the UI so they can be tested directly in the terminal.
+* Configurable @timestamp -  Fields that contain date and time that will be used as the @timestamp field can be configured per source type, otherwise, @timestamp defaults to ingestion time. This allows ingestion of practically any jsonl files, even those that don't have any date/time fields.
+
+### Log Ingestion and Normalization
+
+* Dynamically generates filebeat input, logstash pipelines, and opensearch index template configuration files per source type. Users can customize these configuration files for any additional logic if needed.
+* Idempotent log ingestion. One or more uploaded artefacts containing similar events will not result into duplicate documents in OpenSearch once ingested. Document "fingerprint" used is configurable per source type.
+* Timezone normalization - @timestamp field of each ingested event is normalized into UTC timezone and an option to create an extra timestamp_TIMEZONE field(s) is available during case creation.
+* Field normalization - Field data types are mapped into those in Elastic Common Schema (ECS) for known fields, and dynamically determined for the unknown ones. Any conflict can be resolved easily through field mappings configuration interface. 
+
+### Event Enrichments
+
+* Add persistent enrichments to events in OpenSearch such as tags and comments and automatically project them into OpenSearch Dashboards persistently (i.e., enrichments survive re-parsing or reloading of artefacts).
+* Group a specific set of events into "collections" and an easy toggle to add hand-picked events to the final investigation timeline.
+* Intuitive user interface for event enrichments, marking indicators of compromise, and pivoting during artefacts analysis. All searches performed are automatically saved in a "pivot tree".
+* Enrich each event with geo-location information. Recursive-IR uses its own MMDB-format IP Geolocation database generated from ipverse data at https://github.com/ipverse.
+
+### Sigma Rules Support
+
+* Built-in support for sigma detection rules. Users can use Security Analytics plugin of OpenSearch Dashboards which comes with a number of detection rules for different source types, and create or import custom rules.
 
 
 ---
-
+<a id="quickstart"></a>
 # 🚀 Quickstart
 
 This guide walks you through a **fresh single-node installation** of Recursive-IR on any Ubuntu installation (tested on Ubuntu Server 24.03).
@@ -47,9 +97,9 @@ cd recursive-ir
 
 ---
 
-## 2️⃣ Install OpenSearch Stack and Recursive-IR 
+## 2️⃣ Install  OpenSearch Stack and Recursive-IR 
 
-Recursive-IR comes with an installer script that automates everything needed to bring up the whole stack. Running the script might take several minutes as it downloads the needed packages (OpenSearch/OpenSearch Dashboards), and tarballs (Filebeat, Logstash), as well as the Docker images for Recursive-IR's web UI, API, and Nginx containers. The admin password specified in the below command MUST be a strong one, otherwise, installation may not be successful (e.g., logins to the platform may fail.)
+Recursive-IR comes with an installer script that automates everything needed to bring up the whole stack. Running the script might take several minutes as it downloads the needed packages including the latest OpenSearch and OpenSearch Dashboards, Filebeat, and Logstash, as well as the Docker images for Recursive-IR's web UI, API, and Nginx containers. The admin password specified in the below command MUST be a strong one, otherwise, installation may not be successful (e.g., initial login to the platform may fail.)
 
 ```bash
 sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='Recursive-IR-2026!' \
@@ -58,46 +108,14 @@ sudo OPENSEARCH_INITIAL_ADMIN_PASSWORD='Recursive-IR-2026!' \
 
 This installs and configures:
 
-- OpenSearch (single-node, bound to `127.0.0.1`)
-- OpenSearch Dashboards (loopback only)
-- Logstash
-- Filebeat 
-- Recursive IR Web UI container
-- Recursive IR Web API container
-- Nginx proxy container
+- OpenSearch, latest Ubuntu package (single-node, bound to `127.0.0.1`)
+- OpenSearch Dashboards, latest Ubuntu package (loopback only)
+- Logstash, latest Apache 2.0 licensed version
+- Filebeat, lates Apache 2.0 licensed version
+- Recursive IR Web UI container package
+- Recursive IR Web API container package
+- Nginx proxy container package
 - "recursive" user account. Use ```sudo psaswd recursive``` to set its password. 
-
----
-
-## 3️⃣ Login to Recursive-IR for the first time 
-
-From another machine on the network, access Recursive-IR using "admin" username and OPENSEARCH_INITIAL_ADMIN_PASSWORD to login. Note: this step is crucial as it bootstraps OpenSearch Dashboards objects in the Global tenant in order to push Recursive-IR custom settings in the next step.
-
-```
-http://<your-server-ip>/
-```
-![diagram](assets/images/login.png)
-
-The nginx gateway proxies connections to the following:
-
-- OpenSearch Dashboards → `/`
-- Recursive-IR UI → `/recursive-ir/`
-- Recursive-IR API → `/recursive-ir/api/v1`
-
-After logging in, a tenant selection will be presented. Global tenant is the main investigation workspace for the admin user. Non-admin users also have access to the same Global tenant but can only make modifications in their own Private tenants (e.g., creating saved searches, visualisations, and dashboards).
-
-
-![diagram](assets/images/tenant_selection.png)
-
-## 4️⃣Push OpenSearch Templates and OpenSearch-Dashboards Settings
-
-As the final step, the following commands will seed the OpenSearch with default index templates and the OpenSearch Dashboards with default settings.
-
-```bash
-sudo dfir os templates-push
-sudo dfir osd patterns-push
-sudo dfir osd settings-sync
-```
 
 ---
 
@@ -133,36 +151,89 @@ Your Recursive-IR deployment now includes:
 - Log ingestion via Logstash + Filebeat
 - Recursive-IR worker + enrichment engine
 - FastAPI backend
-- React Pivot + Enrichment UI
+- Recursive-IR web user interface
 - nginx LAN gateway for controlled access
 
----
+To start using Recursive-IR for your investigations, access the following url (replace OSD_HOST_LAN with the correct IP address):
 
+```http://OSD_HOST_LAN```
+
+---
+<a id="user-guide"></a>
 # 📘 User Guide
 
-Recursive-IR is currently actively being developed. As such, all CLI commands listed below will have a corresponding API endpoint accessible via the web UI. Type ```dfir | dfir [cmd] -h``` to see the help menu. 
+The Recursive-IR platform is mainly driven by an executable program called "dfir". All operations done via the web user interface will go through a "job" system where each job will be submitted to the appropriate backend API endpoint for queuing. This job will then be consumed and executed by a background systemd worker process called "dfir-worker" (which also runs the "dfir" executable). As such, all steps performed in the web interface as shown in this user guide, can also be executed directly on the terminal.
+
+As of writing, Recursive-IR is actively being developed. For a list of all available dfir commands and parameters, type ```dfir``` or ```dfir [cmd] -h``` to see the corresponding help menu. 
 
 ---
+<a id="user-login"></a>
+## Logging in to Recursive-IR Web User Interface
 
-## ➕ Adding a New Parser Definition 
+Using the admin username and password set during the installation, login to Recursive-IR by visiting ```http://OSD_HOST_LAN```. 
 
-The first step in using the platform is adding new parser definitions. By default, Recursive-IR ships with a number of sample parsers, that can be enabled by modifying the enabled setting in:
+<img src="assets/images/login.png" width="40%" />
 
+Once logged in, the web interface will show a number of sections for configuring Recursive-IR and performing various actions. The left panel containing these sections can be expanded/collapsed by clicking the "hamburger" menu at the top of the left panel.
+
+<img src="assets/images/left_panel.png" width="40%" />
+
+<a id="status-cards"></a>
+## Quick Steps Status Cards
+
+A number of steps are involved before forensics artefacts can be analysed using Recursive-IR during an incident response investigation. These steps can be summarized as follows:
+
+1. Definition of artefacts parsers.
+2. Creation of cases and hosts, and uploading of raw artefacts.
+3. Parsing of uploaded forensics artefacts and ingestion into an observability platform (i.e., OpenSearch).
+
+A status card representing each step is shown in the main page which guides the user on what to do in sequential order. These cards are just clickable links to the section shortcuts on the left panel menu.
+
+In Step #2 for example, the application will detect if there are any parsers already configured and enabled (Step #1) prior to creating new cases and uploading new artefacts. If there was none, the card remains disabled. Likewise, in Step #3, the application will detect if there are any ingested events already present for exploration and analysis, otherwise the card remains disabled. Shortcuts on the left panel are still clickable anytime regardless of the cards' status.
+
+<img src="assets/images/quick_steps.png"/>
+
+<a id="new-parser"></a>
+## Adding a New Parser Definition 
+
+The first step in using the platform is adding new parser definitions. By default, Recursive-IR ships with a few sample parser definitions that can be enabled or disabled as needed. These parser definitions are only meant to show various ways on how to configure stand-alone parsers or create wrappers that can execute multiple programs in order to produce the final jsonl output needed for ingestion. 
+
+<img src="assets/images/sample_parsers.png" width="40%"/>
+
+For example, the dissect framework uses a separate program called rdump to parse the output of target-query command and produce json files. By creating a script wrapper as shown below, one can combine target-query and rdump into a single executable that can be configured in the parser definition for parsing .evtx artefacts from a given raw artefact source. Note that the dissect python scripts used here were installed in "recursive" user's .venv folder. Recursive-IR doesn't normally ship with parser programs (except for a few Apache 2.0-licensed ones). Users should bring their own parsers into the platform.
+
+<img src="assets/images/dissect_evtx_script.png" width="60%"/>
+
+<img src="assets/images/dissect_evtx.png"/>
+
+In another example below, given the huge number of individual log files involved when analysing AWS cloudtrail logs extracted from an S3 bucket, the ingestion pipeline might error out due to excessive open Filebeat file handles. By creating a wrapper script, not only that individual events can be extracted from 'Records' array within the log files, all events can also be written into a single jsonl file avoiding that excessive file handles scenario.
+
+<img src="assets/images/cloudtrail_script.png"/>
+
+Parser entries can be copied or duplicated. This allows renaming a source type say "defender-device-timeline" as opposed to just plain csv.
+
+
+<img src="assets/images/duplicate_parser.png" width="40%"/>
+
+Parser definitions are straight forward. Parameters are specified on the left side, and the corresponding arguments or values are specified on the right. Parameters without any corresponding arguments can also be specified. 
+
+
+<img src="assets/images/args.png" width="100%" />
+
+For every parser definition, two previews are shown on the right panel. One, for the dfir command that can be run in the command line (see below) to create the parser definition via the terminal, and two, the actual parser executable command that the dfir program will execute during log ingestion workflow. The second preview can be tested to ensure that the parser executable will produce the needed jsonl output file for ingestion.
+
+<img src="assets/images/command_preview.png" width="80%"/>
+
+All parser definitions are written into the file:
 ```
 /etc/recursive-ir/conf/parsers.yml
 ```
-After enabling sample parser definitions, push the templates and data views:
-```
-sudo dfir os templates-push
-sudo dfir osd patterns-push
-```
-
-An example parser command that adds a parser definition to convert EVTX logs into jsonl format is shown below:
+On the command line, an example parser command that adds a parser definition to convert EVTX logs into jsonl format is shown below:
 
 ```bash
-dfir parser new -t evtx --patterns "*.evtx" --bin evtx_dump --args '-o,jsonl,--no-confirm-overwrite,-f,{out},{in}' 
+dfir parser new -t evtx --patterns "*.evtx" --bin evtx_dump --args '-o,jsonl,--no-confirm-overwrite,-f,{out},{in}' -z AEST
 ```
-The command above means that any file in *.evtx format shall be handled by the program evtx_dump (parsers can be found or put into bin/ folder of the recursive-ir repository for convenience). The command above will create the following entry in parsers.yml (if it doesn't exist yet or unless -f or --force is specified).
+The command above means that any file in *.evtx format shall be handled by the program evtx_dump (parsers can be found or put into bin/ folder of the recursive-ir repository for convenience). The command above will create the following entry in parsers.yml if it doesn't exist yet or unless -f or --force is specified, in which case, the parser definition will be overwritten for that particular source type.
 
 ```
   evtx:
@@ -173,10 +244,11 @@ The command above means that any file in *.evtx format shall be handled by the p
     route_mode: walk
     inherit_type: false
     expand_archives: top
+    timezone: AEST
     id: 100
 ```
 
-Parser concepts:
+### Parser Parameters:
 
 - `enabled` - Whether the dfir-parser will activate the parser to perform jsonl conversion
 - `patterns` - For individual files, globbing patterns are allowed. For artefacts inside folders, exact folder name must be specified
@@ -185,12 +257,13 @@ Parser concepts:
 - `route_mode`: [walk|bundle] - whether the individual files will be recursively processed and fed into the parser program or the whole folder will be handed over.
 - `inherit_type` - If a folder contains different types of artefacts, and you want to process them under a specific parsers.yml entry, set this to true. Otherwise, all parsers.yml entry that matches the patterns of each file will activate. For example, dropping an *.evtx will trigger both evtx_dump and hayabusa parsers.
 - `expand_archives` - Automatically expand supported archives (tar/gz/zip).
+- `timezone` - the timezone used by the events from this particular source type.
 - `id` - an auto-generated parsers entry id.
 - `{in}` - A placeholder that will be replaced by the artefact file/folder being parsed.
 - `{out}` - A placeholder for output jsonl file (e.g., Security.evtx.jsonl)
 
 
-After a parser entry is created, several things happen behind the scene. Configuration files such as filebeat inputs, logstash pipelines, and opensearch index templates, etc. are created automatically. This allows recursive-ir to ingest practically any type of forensics artefacts as long as they are in jsonl format, without shipping any vendor-specific normalization pipelines. The following files and folder contents are modified:
+After a parser entry is created, several things happen behind the scene. Configuration files such as filebeat input config files, logstash pipelines, and opensearch index templates, etc. are created dynamically. This allows recursive-ir to ingest practically any type of forensics artefacts as long as they are in jsonl format, without shipping any vendor-specific ingestion and normalization pipelines. The following files and folder contents are modified:
 
 Parser definitions:
 ```
@@ -213,22 +286,30 @@ OpenSearch index template file:
 ```
 /etc/recursive-ir/opensearch/templates/<source_type>-template.json
 ```
+OpenSearch Dashboards columns file:
+```
+/etc/recursive-ir/opensearch-dashboards/columns.yml 
+```
+<a id="new-case"></a>
+## Creating a New Case
+Events in the Recursive-IR can be grouped logically into different cases. Each event will have a case_id field that associates the event to a case and is used for scoping users' access. This allows forensics investigator and incident responders to work on multiple cases within the same deployment, although a dedicated box is still recommended for complete isolation. 
 
-Important: When enabling sample parser definitions that ship with Recursive-IR, you will need to run ```dfir os templates-push``` and ```dfir osd patterns-push``` in order to prepare both OpenSearch and OpenSearch Dashboards for log ingestion.
+<img src="assets/images/case_panel.png" width="40%"/>
 
----
+Create a case by accessing the Case Management page from the left panel menu. The fields to be filled in are pretty self explanatory. All events when ingested into OpenSearch will have their timestamps normalized into UTC timezone. Additional timestamp_TIMEZONE fields can be added to each event by selecting one or more timezones from the drop-down menu.
 
-## 📂 Creating a New Case
-Events in the Recursive-IR can be grouped logically into different cases. Each event will have a case_id associated with it that can be used for filtering. This allows forensics investigator and incident responders to work on multiple cases, although a dedicated box is still recommended for complete isolation. The following command creates a new case.
+<img src="assets/images/new_case.png"/>
 
+On the terminal, the following command creates a new case.
 
 ```bash
-dfir case new -c <customer_name> -z <timezone> 
+dfir case new -o "Contoso" -t "Entra compromise - March 2026" -d "Investigation of a business email compromise resulting from an attacker-in-the-middle attack" -z "AEDT"
 ```
 
 This will:
 
 - Create case folder structure inside ```/var/log/recursive-ir/cases/<case_id```
+- Update the case_manifest.json to include all the details about the case. This case_manifest.json will aslo be ingested into OpenSearch under case-manifest-* data view in Discover.
 ```
 /var/log/recursive-ir/cases/
 └── dfir-nnnn/
@@ -236,24 +317,31 @@ This will:
     ├── enrichments/
     └── case_manifest.json
 ```
-- Create additional timestamp_timezone field that is useful if the investigation involves multiple timezones (e.g., either the artefacts sources or the analysts working on the case).
-- Initialize case manifest that will be ingested into OpenSearch.
 
-![cases](assets/images/cases.png)
 
 ---
+<a id="new-host"></a>
+## Adding a New Host Into a Case
 
-## 🖥 Adding a Host into a Case
-Every case will contain one or more hosts where artefacts will be dropped for ingestion. Similar to the case creation, adding a new host creates the metadata file that will be ingested into OpenSearch. Artefacts dropped into the host's inbox folder will also have the host_ip field created that can be used to identify all events belonging to a particular host. If an artefacts source does not have an IP address (e.g., cloud-related artefacts, any IP address can be specified (e.g., 127.0.0.1) just for tracking. The following excample command adds a new host to an existing case (only case_id and ip are mandatory, see -h for details):
+Once the case is created, the case creation panel enters into edit mode where further changes can be made or the panel can be dismissed. At this point, the host panel will also appear on the right where new hosts can be added to the case. A host is represented by IP address so that all artefacts belonging to the host can be uploaded into it. For artefacts coming from non-host sources like cloud, reserved IP address are used instead just for tracking. An IP address, a list of IP addresses, or CIDR subnets (with limits) can be specified during host creation.
 
+<img src="assets/images/new_host.png"/>
+
+When done creating the hosts, dismiss the host creation panel by clicking on the cancel button to focus back on the host list panel. Hosts listed in the table can be sorted or each host can be edited where basic information such as description and operating system can be modified. Selecting any host will bring up the artefacts upload panel (next section).
+
+<img src="assets/images/hosts_panel.png"/>
+
+On the terminal, a new host can be added into a case using the command below.
 
 ```bash
-dfir host add -c dfir-0001 --ip 192.168.0.1 --hostname host1.local --os Windows11
+dfir host add -c dfir-0001 --ip 192.168.0.1 --hostname host1.local --os Windows11 --description "Active Directory 1"
 ```
 
 The command above will perform the following:
 
 - Create the necessary directories for artefacts ingestion.
+- Initialize a host manifest that will be ingested into OpenSearch.
+- Display some instructions on how to manually drop artefacts into the host's inbox folder with the appropriate permissions.
 ```
 /var/log/recursive-ir/cases/
 └── dfir-0001/
@@ -267,51 +355,161 @@ The command above will perform the following:
     │       └── host_manifest.json
     └── case_manifest.json
 ```
-- Initialize a host manifest that will be ingested into OpenSearch. 
 
----
+Below is the output when the command is ran in the terminal. 
 
-## 📥 Dropping Artefacts into a Host's Inbox folder
+<img src="assets/images/artefact_drop_instruction.png"/>
 
-Once the host has been created, artefacts can now be dropped into that host's inbox folder in:
+<a id="uploading-artefacts"></a>
+## Uploading Artefacts
+
+Once the host has been created, artefacts can now be uploaded into that host's inbox folder via the web interface or directly in the terminal by placing them in this folder:
 
 ```
-/var/log/recursive-ir/cases/<case_id>/hosts/<host>/inbox/
+/var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/inbox/
 ```
+
+On the web interface, select the host from the host list panel where artefacts will be uploaded into. This will bring up the artefacts upload panel. Artefacts can be selected for upload either by clicking the file or folder upload buttons and selecting the files, or by dragging and dropping the files into the artefacts upload panel.
+
+
+When ready to upload the artefacts, hit the upload button to begin the upload process. Files bigger than 2GB will be chunked where uploads can be resumed if interrupted. Once upload is finished, these chunks will be merged before moving to the appropriate host inbox folder along with the other uploaded artefacts.
+
+<img src="assets/images/uploading_artefacts.png"/>
+
+The upload staging folder can be found inside:
+
+```
+/var/lib/recursive-ir/web/uploads
+```
+Uploaded artefacts will be hashed and added to ```/var/log/recursive-artefacts_manifest.json
+
 
 The dfir-watcher service automatically:
 
-- Detects artefacts dropped into the inbox folder .
-- Routes them to the appropriate raw_artefacts/<source_type/ folder according to the parsers.yml entries.
+- Detects artefacts dropped into the inbox folder either directly (e.g., via cp or mv) or through the web ui.
+- Routes them to the appropriate ```/var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/raw_artefacts/<source_type/``` folder according to the parsers.yml entries where dfir-parser service will parse them automatically.
 - Maintain the folder hierarchy of dropped artefacts as much as possible.
 
 The dfir-parser service will automatically:
-- Detect artefacts dropped into the raw_artefacts/<source_type/ folder.
-- Spawn child process to run and parse the artefacts according to the parsers.yml entries.
-- Write the resulting jsonl file into jsonified_artefacts/<source_type/. Filebeat constantly monitors these folders, so it can hand over the events to Logstash for ingestion into OpenSearch.
+- Detect artefacts dropped into the ```/var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/raw_artefacts/<source_type/``` folder.
+- Spawn child processes to run and parse the artefacts according to the parsers.yml entries (hard-coded to 10 child processes as of writing).
+- Write the resulting jsonl file into ```/var/log/recursive-ir/cases/<case_id>/hosts/<host_ip>/jsonified_artefacts/<source_type/```. Filebeat constantly monitors these folders, so it can hand over the events contained in the files to Logstash for normalization and ingestion into OpenSearch.
 - Create an artefacts_manifest entry for every parsed artefact. This allows tracking of every artefact ingested into Recursive-IR (i.e., via artefacts-manifest-* data view). 
 
 ---
+<a id="new-user"></a>
+## Creating Users
 
-## 👤 Creating a new New User
+To allow collaborative investigations, additional users can be created by accessing the Users tab within the Settings Panel. During the user creation, one or more cases must be assigned to the user. The user can then be given "case_admin" role to further allow case-related operations (e.g., reloading artefacts, creating hosts, etc.). The password for the newly created user will be displayed briefly on the screen and will automatically disappear within 5 minutes. A new password can be regenerated anytime from within the same panel.
 
-To allow collaborative investigations, additional non-admin users can be created using the following command:
+<img src="assets/images/new_users.png"/>
+
+This user account will live within OpenSearch's internal database as an internal user. The assigned cases will be used to enforce "document-level security" where users will only have access to view events in OpenSearch or OpenSearch Dashboards within their assigned cases.
+
+On the terminal, the following commands add a new user and prints the password on the screen:
 
 ```bash
-sudo dfir user allow bob@example.com --os-create --print-password
+  sudo dfir user create bob@example.com --print-password
+```
+```bash
+  sudo dfir user assign bob@example.com --case dfir-0001 --role user
 ```
 
-This will:
+The commands above will:
 
 - Create an OpenSearch internal user named 'bob@example.com'
-- Authorize the user to access events enrichment UI and add enrichments to the OpenSearch events via "Add_Enrichment" field.
-- Print the user's password on the terminal (optionally send via email (note: this feature is a work in progress but sending an email via Microsoft Entra registered app is supported).
+- Authorize the user to access events enrichment UI and add enrichments to the OpenSearch events via "Add_Enrichment" fields in OpenSearch Dashboards Discover.
+- Print the user's password on the terminal (optionally send via email (note: this feature is a work in progress but sending an email via Microsoft Entra-registered app is supported).
 
 Note: Recursive-IR's Web UI and API lives on the same box as OpenSearch and OpenSearch Dashboards, hence, the authentication tokens are shared between them allowing seemless integration.
 
 ---
+<a id="customizing-columns"></a>
+## Customizing Columns in OSD and Pivot Page
 
-# 🔎 Enriching Events
+When exploring events in OpenSearch Dashboards, sometimes it is useful to have a pre-defined set of columns shown depending on which Log source type is being viewed. For example, an analyst would be interested to see the Computer, Channel, Provider, and Event ID of each evtxjson-* events. On the other hand, when viewing nginx or apache web server logs (e.g., nginxjson-*), one would be more interested in the request_method, request_path, source.ip, or source.geo.country_name. 
+
+
+<img src="assets/images/columns_osd.png"/>
+
+These columns can be customized per source type within the Settings page's Columns tab. Selecting a column/field will generate a realtime aggregation of values so the field values can be inspected if the field is worth adding in the default columns.
+
+<img src="assets/images/columns_settings.png"/>
+
+The fields grouped together will also form the event_summary field for the events in a given source type. This event_summary field is shown when exploring the search result in the Pivot page. The event_summary field is constructed during ingestion so case artefacts have to be reloaded or re-ingested for changes to take effect.
+
+<img src="assets/images/columns_search_panel.png"/>
+
+---
+<a id="timestamp-fields"></a>
+## Selecting @timestamp Fields
+
+When an event is ingested, Recursive-IR's logstash pipeline selects from a pre-defined list of fields that contain date and time. Some events will have multiple fields, for example, Windows MFT artefacts will have MACB timestamps. To change the preferred timestamp prioritization or order, re-arrange the timestamps list in the Settings panel's Timestamp tab. New fields can also be added to the list. If an event doesn't have any field in the list, the @timestamp field will be set to the ingestion time and a warning banner is displayed. To resolve this, inspect sample events from the selected index or data view to find a field that may contain date and time that can be used for the timestamp field.  
+
+<img src="assets/images/timestamps_tab.png"/>
+
+Clicking the banner will display the data views with event timestamps falling back to ingestion time. Selecting a data view loads sample events at the bottom where each can be inspected to identify fields that can be used for the @timestamp field such as Event.System.TimeCreated.#attributes.SystemTime in this example. Once the field is added to the list, reload the case artefacts to apply changes to the ingested data and all ingested events will use it as their @timestamp field. 
+
+<img src="assets/images/timestamps_warning.png"/>
+
+---
+
+<a id="mapping-fields"></a>
+## Mapping Fields and Resolving Conflicts
+
+In order to leverage OpenSearch's powerful search engine, events ingested should have fields mapped into their appropriate types. A string containing an IP address for example, when mapped to the "ip" data type, allows searching for IPs included in the same cidr subnet. Think of a scenario where you found an IP address indicator and you suspect that the threat actor uses other IPs in the same subnet.
+
+
+When mapped as a "text", OpenSearch breaks down a field into separate tokens that enables lighting fast searches across millions of events. On the other hand, a field mapped as keyword allows aggregation searches where statistics can be retrieved (e.g., how many events have this value in the "request.url" field). Aggregations are used within the platform in several places such as when inspecting fields that can be used for @timestamp, or specifying additional search filters when pivoting from an event.
+
+In general, correct data types allow applications to store them efficiently and perform operations on them that would otherwise have not been possible had they been mapped to the wrong type. An example would be the MaxMind geolocation database format (mmdb). IP addresses or subnets are stored and accessed in a special way that enables really fast IP address lookups as opposed to say storing subnets as plain texts or strings.  
+
+Recursive-IR uses Elastic Common Schema to map known fields to the appropriate data types using a pre-defined field naming convention. The helper script below creates an OpenSearch index component template in ```/etc/recursive-ir/opensearch/templates/ecs-component.json``` corresponding to the fields in the ECS spreadsheet in ```/etc/recursive-ir/conf/ecs-fields.csv``` (retrieved from this url: https://raw.githubusercontent.com/elastic/ecs/refs/heads/main/generated/csv/fields.csv):
+
+```
+[repo_path]/scripts/get_ecs_template.py
+```
+
+ecs-component.json is "imported" (i.e., via composed_of) into each index template generated per source type so each one inherits the mappings from this template.
+
+OpenSearch supports dynamic mapping so it can automatically detect the most appropriate field type if not specified in the template. If a log file contains a field that isn't included in the ECS template that was created, its type is dynamically determined during ingestion. A problem arises when a log source has a field that has conflicting values. A tool for example can mix integers with strings such as "logon_type" having both "3" on some events and "3 - Network" on others. 
+
+Once OpenSearch already mapped that field to an integer, succeeding events containing alpha-numeric values will be rejected. These ingestion errors will be logged by Logstash into its "dead letter queue" in ```/var/lib/recursive-ir/logstash/dead_letter_queue/```. Events in this log file is ingested into Recursive-IR OpenSearch under "ingestion-error-*" index where then can be inspected and resolved. To see the list of all conflicting fields, turn off "Hide missing fields" under "Filter by type" panel,  and "Visualize" and "Inspect" the field dlq.error_field.keyword (each field has a corresponding .keyword sub field that can be used for aggregation.)
+
+<img src="assets/images/error_field.png"/>
+
+Clicking the Explore button will take the user to the OpenSearch Dashboards Discover app where the default data view selected will be the "ingestion-error-*". The field that's causing the ingestion error can be inspected.
+
+<img src="assets/images/ingestion_error.png"/>
+
+To resolve this, fields can be normalised via the Field Mappings page. Stringifying a field for example ensures that values are mapped to type text when events get ingested. 
+
+<img src="assets/images/sample_stringify.png"/>
+
+Once changes are saved, artefacts need to be re-ingested by performing a case reload through the Maintenance panel (see the next section).
+
+
+---
+<a id="reloading-artefacts"></a>
+## Reloading Case Artefacts
+
+As previously mentioned, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name source.ip to SrcIpAddress, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Access the reload panel from within the Case Management page via the target case's reload button as shown below:
+
+<img src="assets/images/case_reload.png"/>
+
+If one wants to just re-ingest the events into OpenSearch, plain reload is fine. However, if re-parsing is needed, an option is also available. Think of a scenario where using the analyst decided to re-parse the artefacts using plaso after enabling additional plugins. In the command line, case artefacts can be reloaded using the following command:
+
+```
+dfir case reload -c dfir-0001 
+```
+or
+```
+dfir case reload -c dfir-0001 --reparse
+```
+
+---
+<a id="enriching-events"></a>
+## Enriching Events
 
 Recursive-IR uses field value type "URL" to add a clickable link on the "Add_Enrichment" field, that when clicked, will take the user to the enrichment UI where the user can pivot from (e.g., perform additional searches after inspecting the event), add enrichments such as tags, comments, collections, IOCs, and timeline. 
 
@@ -324,26 +522,27 @@ All enrichments will be created in the form of additional fields added into the 
 ![tag_builder](assets/images/tag_builder.png)
 
 - ```event.iocs``` - an array of indicators of compromise (iocs)
-IOCs can be marked by highlighting any string on the pivot event panel and accessing the right click context menu or clicking on the automatically highlighted pills.
+IOCs can be marked by highlighting any string on the pivot event panel and accessing the right click context menu or clicking on any highlighted pills.
 
 ![iocs](assets/images/iocs.png)
 
-- ```event_collections``` - an array of collection names which the event is associated with. For example, a 1500+ failed logon events can be added to the collection "bruteforce_attacks" but only the initial, and successful ones are added into the Timeline.
+- ```event_collections``` - an array of collection names which the event is associated with. For example, a 1500+ failed logon events can be added to the collection "bruteforce_attacks" but only the initial, and successful ones are added into the Timeline. Instead of placing everything in the timeline (by toggling the "timeline" slider, see below), collections can be used to group related events. 
 
 ![collections](assets/images/collections.png)
 
-- ```event_in_timeline``` - created by toggling the "Timeline" slider on the pivot event. This is useful for maintaining a highly currated list of events that ultimately go into the investigation's timeline (and into your report).
-- ```event_in_artefacts``` - system generated field that gets created depending on the user's enrichment actions (e.g., adding IOCs, adding to Timeline, etc.). 
+- ```event_in_timeline``` - created by toggling the "timeline" slider on the pivot event. This is useful for maintaining a highly currated list of events that ultimately go into the investigation's timeline. When investigation is over for example all events where event_in_timeline is true can be filtered.
+  
+- ```event_in_artefacts``` - system generated field that gets created depending on the user's enrichment actions (e.g., adding IOCs, adding to Timeline, etc.). If the analyst tags something or marks an IOC, or adds something in the timeline, it probably is related to the investigation, hence, automatically set event_in_artefacts field to true.
 
 The Enrichment panel in the enrichment UI is located on the right side and shows the existing enrichments that were added to the event.
 
 ![enrichment_panel](assets/images/enrichment_panel.png)
 
-Certain enrichments can be added in bulk such as tags, iocs, and collections by accessing the enrichments button within the search panel.
+Certain enrichments can be added in bulk such as tags, iocs, and collections by accessing the enrichments button within the search panel. There is no limit to the number of events that can be enriched (e.g., when selecting "All events"). The dfir-enricher service performs enrichment in the background which the investigation continues.
 
 ---
-
-## 🔍 Pivoting from the event by searching for specific terms
+<a id="pivoting-event"></a>
+## 🔍 Pivoting From an Event
 
 From Pivot event, a any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
 
@@ -357,16 +556,14 @@ Both wildcard and word searches can be performed in the advanced search modal:
 
 When a search is performed, the search panel results appear at the bottom and individual events can be selected to perform bulk enrichments action. To inspect the search results, an event_summary is displayed in the table. The fields included in the event_summary are constructed during the ingestion time by combining the fields specified in ```/etc/recursive-ir/opensearch-dashboards/columns.yml``` under a source_type entry. 
 
-Note: Search feature is currently a work in progress to add features such as paging, enriching "all" events (as opposed to the preview list).
-
 ![search_panel](assets/images/search_panel.png)
 
 To make the search results more useable for analysis (e.g., to filter out noise in your data), access the stats panel by clicking on any field in the pivot event. This will bring up the Field Statistics panel where values can be filtered (include or exclude) and the search results will be updated immediately. All applied filters will be added to the "Filters" tab. 
 
 
-![field_stats](assets/images/field_stats.png)
+<img src="assets/images/field_stats.png" width="40%" />
 
-
+<a id="pivot-tree"></a>
 ## 🔍 The Investigation Pivot Tree
 
 Hovering over to the left edge of the UI will bring out the Investigation tree. This is sort of like an automatically created breadcrumbs everytime a new pivot event is loaded or searches are performed. This tree keeps track of the analyst's investigation by logging what searches are performed, how a particular event was found, e.g., by pivoting from one event to another. In OpenSearch Dashboards, this could be similar to some degree to "saved searches", but without the user having to manually save anything. The tree can be cleared anytime as needed.
@@ -377,7 +574,7 @@ Hovering over to the left edge of the UI will bring out the Investigation tree. 
 
 
 ---
-
+<a id="directory-layout"></a>
 # 📁 Directory Layout
 
 #### 🔎 OpenSearch
@@ -441,7 +638,7 @@ External access is handled by nginx (accessible via OSD_HOST_LAN).
 | Path | Purpose |
 |------|---------|
 | `/etc/recursive-ir/` | Main configuration directory |
-| `/etc/recursive-ir/conf/recursive.env` | Runtime environment configuration |
+| `/etc/recursive-ir/env/recursive.env` | Runtime environment configuration |
 | `/etc/recursive-ir/filebeat` | Filebeat input configuration files |
 | `/etc/recursive-ir/logstash` | Logstash pipeline configuration files |
 | `/var/log/recursive-ir/cases/` | Main artefacts storage (raw + jsonl-converted |
@@ -492,7 +689,7 @@ All OpenSearch TLS materials are stored under:
 ```
 
 ---
-
+<a id="systemd-units"></a>
 #  Systemd Units 
 
 
@@ -527,31 +724,13 @@ and routes them into:
 
 
 ---
-
+<a id="troubleshooting"></a>
 # 🛠 Troubleshooting
 
 ---
 
-## ⚠ Resolving Type Conflicts
-
-In order to leverage OpenSearch's powerful search engine, events ingested should have fields mapped into their appropriate types. A string containing an IP address for example, when mapped to the "ip" data type, allows searching for IPs included in the same cidr subnet. When mapped as a "text", OpenSearch breaks down a field into separate tokens that enables lighting fast searches across millions of events. A field mapped as keyword allows aggregation searches where statistics can be retrieved (i.e., how many events have this value in the "request.url" field. 
-
-OpenSearch also supports dynamic mapping so it can automatically detect the most appropriate field type. However, conflict can arise when an artefact source mixes values for a certain field. A tool for example can mix integers with strings such as "logon_type" having both "3" and "3 - Network". Once OpenSearch already mapped a field to an integer, succeeding events containing strings value will be rejected. These ingestion errors will be logged by Logstash into its "dead letter queue". Events in this log file is ingested into Recursive-IR OpenSearch under "ingestion-error-*" index where then can be inspected and resolved.
-
-To resolve the conflicting fields:
-
-1. Identify conflicting field by listing events in Disover under "ingestion-error-*". Note that when there are events under this data view, Discover will automatically select this data view. 
-2. Fields can then be "stringified" (or less desirable, dropped) by modifying ```/etc/recursive-ir/conf/field-mappings```
-3. Once the field mappings config has been modified, the case can be reloaded, where previously parsed artefacts can be re-ingested. This is done by first purging indices (actual data) and index templates in OpenSearch, and re-uploading the index templates again.
-
-```
-dfir reset --os -y
-dfir os templates-push
-dfir case reload -c dfir-0000 -y
-```
-
 ---
-
+<a id="license"></a>
 # 📄 License
 
 ```
@@ -559,7 +738,7 @@ see LICENSE file inside recursive-ir repo.
 ```
 
 ---
-
+<a id="reporting-issues"></a>
 # Reporting Issues 
 
 Please use Github's Issues tab.

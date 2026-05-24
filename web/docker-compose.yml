@@ -26,14 +26,23 @@ services:
         source: /etc/recursive-ir/certs/opensearch
         target: /etc/recursive-ir/certs/opensearch
         read_only: true
+
       - type: bind
-        source: /etc/recursive-ir/conf/tags
-        target: /etc/recursive-ir/conf/tags
+        source: /etc/recursive-ir/conf
+        target: /etc/recursive-ir/conf
         read_only: true
         bind:
           create_host_path: false
+
+      - type: bind
+        source: /etc/recursive-ir/env/paths.env
+        target: /etc/recursive-ir/env/paths.env
+        read_only: true
+        bind:
+          create_host_path: false
+
     env_file:
-      - /etc/recursive-ir/conf/recursive.env
+      - /etc/recursive-ir/env/recursive.env
 
   recursive-ir-ui:
     image: ghcr.io/improvisec/recursive-ir-ui:${RI_TAG:-latest}

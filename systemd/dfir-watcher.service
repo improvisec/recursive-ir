@@ -11,21 +11,23 @@ StartLimitIntervalSec=60
 StartLimitBurst=50
 
 # Do not start until the runtime env exists
-ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+ConditionPathExists=/etc/recursive-ir/env/recursive.env
 
 [Service]
 Type=simple
-User=@RI_USER@
-Group=@RI_GROUP@
+User=dfir
+Group=recursive
+MemoryHigh=512M
+MemoryMax=1G
 
 # Repo location (written by: dfir init)
-EnvironmentFile=/etc/recursive-ir/conf/paths.env
+EnvironmentFile=/etc/recursive-ir/env/paths.env
 
 # Runtime configuration (credentials, WATCH_ROOT, etc.)
-EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+EnvironmentFile=/etc/recursive-ir/env/recursive.env
 
 # Run dfir explicitly from repo (absolute path substituted by dfir init)
-ExecStart=@RI_BIN@/dfir ingest watch
+ExecStart=/usr/local/bin/dfir ingest watch
 
 Restart=always
 RestartSec=2

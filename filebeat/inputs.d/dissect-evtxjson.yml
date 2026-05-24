@@ -12,6 +12,7 @@
   id: dissect-evtx-jsonl
   enabled: true
   paths:
+    - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/dissect-evtx/*.jsonl
     - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/dissect-evtx/**/*.jsonl
   include_files: ['\\.jsonl$']
   exclude_files:

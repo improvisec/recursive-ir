@@ -9,21 +9,26 @@ After=network-online.target dfir-watcher.service
 Wants=dfir-watcher.service
 
 # Do not run until the runtime env exists
-ConditionPathExists=/etc/recursive-ir/conf/recursive.env
+ConditionPathExists=/etc/recursive-ir/env/recursive.env
 
 [Service]
 Type=oneshot
-User=@RI_USER@
-Group=@RI_GROUP@
+User=dfir
+Group=recursive
 
 # Repo location (written by: dfir init)
-EnvironmentFile=/etc/recursive-ir/conf/paths.env
+EnvironmentFile=/etc/recursive-ir/env/paths.env
 
 # Runtime configuration
-EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+EnvironmentFile=/etc/recursive-ir/env/recursive.env
+
+# Working directory
+WorkingDirectory=/var/run/recursive-ir
 
 # Run dfir explicitly from repo (absolute path substituted by dfir init)
-ExecStart=@RI_BIN@/dfir ingest parse --execute --jobs-auto
+#ExecStartPre=/bin/sleep 10
 
-ExecStartPost=-@RI_BIN@/dfir osd fields-refresh all
+ExecStart=/usr/local/bin/dfir ingest parse --execute --jobs-auto
+
+ExecStartPost=-/usr/local/bin/dfir osd fields-refresh all
 

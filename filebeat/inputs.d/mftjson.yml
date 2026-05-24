@@ -12,6 +12,7 @@
   id: mft-jsonl
   enabled: true
   paths:
+    - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/mft/*.jsonl
     - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/mft/**/*.jsonl
   include_files: ['\\.jsonl$']
   exclude_files:

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# ------------------------------------------------------------------
+# Recursive-IR helper script
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
 set -euo pipefail
 
 IN="${1:?missing input}"

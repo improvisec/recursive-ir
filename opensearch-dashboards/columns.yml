@@ -2,8 +2,8 @@
 global:
   default_columns:
 #    - timestamp_desc
-
-    # Australian + NZ Timezones
+#
+#    # Australian + NZ Timezones
 #    - timestamp_AEST
 #    - timestamp_AEDT
 #    - timestamp_ACST
@@ -105,7 +105,7 @@ types:
     # for plasojson-*.
     default_columns: 
       - parser
-      - message 
+      - timestamp_desc
 
   json-arrayjson:
     # Columns listed here become the initial set of columns in Discover

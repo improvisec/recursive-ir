@@ -8,7 +8,7 @@
 #
 # - Single-node + loopback only (127.0.0.1)
 # - Non-interactive TLS generation (self-signed CA)
-# - Does NOT modify /etc/recursive-ir/conf/recursive.env
+# - Does NOT modify /etc/recursive-ir/env/recursive.env
 #   (dfir init --bootstrap-env should create it from recursive.env.sample)
 # - Prints installed versions + service statuses + verification results at end
 # ------------------------------------------------------------------
@@ -30,7 +30,7 @@ RI_ADMIN_CERT="${RI_CERTS_OS}/admin.pem"
 RI_ADMIN_KEY="${RI_CERTS_OS}/admin-key.pem"
 
 # Your shipped config locations
-RI_CONF_ENV="${RI_ETC_BASE}/conf/recursive.env"
+RI_CONF_ENV="${RI_ETC_BASE}/env/recursive.env"
 RI_LOGSTASH_ETC="${RI_ETC_BASE}/logstash"
 RI_FILEBEAT_ETC="${RI_ETC_BASE}/filebeat"
 
@@ -213,6 +213,52 @@ ln -sfn "${FB_INSTALL_DIR}" /usr/share/recursive-ir/filebeat
 
 # Ensure logstash service user exists before assigning ownership
 id -u logstash >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin logstash
+
+# Ensure recursive group exists and both services can use /etc/recursive-ir/conf
+getent group recursive >/dev/null || groupadd recursive
+
+id -u dfir >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin -g recursive dfir
+
+usermod -aG recursive logstash
+usermod -aG recursive dfir
+
+cat > /etc/sudoers.d/recursive-ir-dfir <<'EOF'
+dfir ALL=(ALL) NOPASSWD: \
+  /bin/systemctl stop dfir-parser.timer, \
+  /bin/systemctl start dfir-parser.timer, \
+  /bin/systemctl restart dfir-parser.timer, \
+  /bin/systemctl stop dfir-watcher, \
+  /bin/systemctl start dfir-watcher, \
+  /bin/systemctl restart dfir-watcher, \
+  /bin/systemctl stop logstash, \
+  /bin/systemctl start logstash, \
+  /bin/systemctl restart logstash, \
+  /bin/systemctl stop filebeat, \
+  /bin/systemctl start filebeat, \
+  /bin/systemctl restart filebeat, \
+  /usr/local/bin/dfir init, \
+  /usr/local/bin/dfir init *, \
+  /usr/local/bin/dfir reset, \
+  /usr/local/bin/dfir reset *, \
+  /usr/local/bin/dfir case reload *, \
+  /usr/local/bin/dfir parser *, \
+  /usr/local/bin/dfir user, \
+  /usr/local/bin/dfir user *
+EOF
+
+chmod 440 /etc/sudoers.d/recursive-ir-dfir
+visudo -cf /etc/sudoers.d/recursive-ir-dfir
+
+chown root:recursive /etc/recursive-ir
+chmod 755 /etc/recursive-ir
+
+chown root:recursive /etc/recursive-ir/conf
+chmod 2775 /etc/recursive-ir/conf
+
+if [[ -f /etc/recursive-ir/conf/field-mappings.yml ]]; then
+  chown dfir:recursive /etc/recursive-ir/conf/field-mappings.yml
+  chmod 660 /etc/recursive-ir/conf/field-mappings.yml
+fi
 
 chown -R logstash:logstash "${LS_INSTALL_DIR}"
 chown -h logstash:logstash /usr/share/recursive-ir/logstash
@@ -596,7 +642,7 @@ systemctl restart opensearch-dashboards
 #
 section "Install Recursive-IR systemd units for Logstash + Filebeat"
 
-mkdir -p "${RI_LOGSTASH_ETC}" "${RI_FILEBEAT_ETC}" "${RI_ETC_BASE}/conf"
+mkdir -p "${RI_LOGSTASH_ETC}" "${RI_FILEBEAT_ETC}" "${RI_ETC_BASE}/conf" "${RI_ETC_BASE}/env"
 
 # Ensure data/log dirs expected by our units and shipped configs
 mkdir -p \
@@ -626,7 +672,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-EnvironmentFile=/etc/recursive-ir/conf/recursive.env
+EnvironmentFile=/etc/recursive-ir/env/recursive.env
 User=logstash
 Group=logstash
 ExecStart=/usr/share/recursive-ir/logstash/bin/logstash --path.settings /etc/recursive-ir/logstash
@@ -683,11 +729,20 @@ fi
 
 sudo ./bin/dfir init --bootstrap-env --enable --create-recursive-user
 
+# Re-apply config permissions after dfir init creates or rewrites files
+chown root:recursive /etc/recursive-ir/conf
+chmod 2775 /etc/recursive-ir/conf
+
+if [[ -f /etc/recursive-ir/conf/field-mappings.yml ]]; then
+  chown dfir:recursive /etc/recursive-ir/conf/field-mappings.yml
+  chmod 660 /etc/recursive-ir/conf/field-mappings.yml
+fi
+
 
 # =========================
 # Update generated recursive.env
 # =========================
-section "Configure /etc/recursive-ir/conf/recursive.env"
+section "Configure /etc/recursive-ir/env/recursive.env"
 
 if [[ ! -f "${RI_CONF_ENV}" ]]; then
   echo "ERROR: ${RI_CONF_ENV} was not created by dfir init"
@@ -769,6 +824,38 @@ fi
   docker compose --env-file "${RI_CONF_ENV}" up -d --pull always
 )
 
+# =========================
+# Bootstrap OpenSearch / OSD objects
+# =========================
+section "Bootstrap OpenSearch templates and OpenSearch Dashboards objects"
+
+if [[ ! -x "./bin/dfir" ]]; then
+  echo "ERROR: ./bin/dfir not found. Run installer from the Recursive-IR repo root."
+  exit 1
+fi
+
+# Wait for OpenSearch Dashboards API to be reachable before pushing objects/settings.
+OSD_READY="0"
+for _ in $(seq 1 60); do
+  if curl --silent --fail \
+      -u "admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}" \
+      "http://127.0.0.1:5601/api/status" >/dev/null; then
+    OSD_READY="1"
+    break
+  fi
+  sleep 2
+done
+
+if [[ "${OSD_READY}" != "1" ]]; then
+  echo "ERROR: OpenSearch Dashboards API did not become ready in time."
+  exit 1
+fi
+
+echo "OpenSearch Dashboards API is ready. Pushing Recursive-IR templates and settings..."
+
+./bin/dfir os templates-push
+./bin/dfir osd patterns-push
+./bin/dfir osd settings-sync
 
 # =========================
 # Verification + Summary

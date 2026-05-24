@@ -1,3 +1,9 @@
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+#
+# This file may be modified or extended by Recursive-IR.
+
 # ------------------------------------------------------------------
 # Recursive-IR configuration file
 # Copyright (c) 2026 Mark Jayson Alvarez
@@ -25,3 +31,15 @@
   path.config: /etc/recursive-ir/logstash/pipelines/104-dissect-evtxjson.conf
 - pipeline.id: json-arrayjson
   path.config: /etc/recursive-ir/logstash/pipelines/105-json-arrayjson.conf
+- pipeline.id: nginxjson
+  path.config: /etc/recursive-ir/logstash/pipelines/106-nginxjson.conf
+- pipeline.id: linuxfsjson
+  path.config: /etc/recursive-ir/logstash/pipelines/107-linuxfsjson.conf
+- pipeline.id: cloudtrailjson
+  path.config: /etc/recursive-ir/logstash/pipelines/108-cloudtrailjson.conf
+- pipeline.id: json-passthroughjson
+  path.config: /etc/recursive-ir/logstash/pipelines/109-json-passthroughjson.conf
+- pipeline.id: csvjson
+  path.config: /etc/recursive-ir/logstash/pipelines/110-csvjson.conf
+- pipeline.id: csv-headerlessjson
+  path.config: /etc/recursive-ir/logstash/pipelines/113-csv-headerlessjson.conf

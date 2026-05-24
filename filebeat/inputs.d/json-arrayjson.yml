@@ -12,6 +12,7 @@
   id: json-array-jsonl
   enabled: true
   paths:
+    - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/json-array/*.jsonl
     - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/json-array/**/*.jsonl
   include_files: ['\\.jsonl$']
   exclude_files:

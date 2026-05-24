@@ -12,6 +12,7 @@
   id: plaso-jsonl
   enabled: true
   paths:
+    - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/plaso/*.jsonl
     - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/plaso/**/*.jsonl
   include_files: ['\\.jsonl$']
   exclude_files:

@@ -12,6 +12,7 @@
   id: hayabusa-jsonl
   enabled: true
   paths:
+    - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/hayabusa/*.jsonl
     - /var/log/recursive-ir/cases/*/hosts/*/jsonified_artefacts/hayabusa/**/*.jsonl
   include_files: ['\\.jsonl$']
   exclude_files:
