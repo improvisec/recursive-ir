@@ -5,16 +5,6 @@
 #
 default_type: other
 types:
-  evtx:
-    enabled: true
-    patterns: ["*.evtx"]
-    bin: evtx_dump
-    args: ["-o", "jsonl", "--no-confirm-overwrite", "-f", "{out}", "{in}"]
-    route_mode: walk
-    inherit_type: false
-    expand_archives: top
-    timezone: UTC
-    id: 100
   dissect-evtx:
     enabled: true
     patterns: ["*.vmdk"]
@@ -27,9 +17,9 @@ types:
     id: 104
   hayabusa:
     enabled: true
-    patterns: ["*.evtx"]
+    patterns: ["winevt"]
     bin: hayabusa
-    args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "-f", "{in}"]
+    args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "--directory", "{in}"]
     route_mode: walk
     inherit_type: false
     expand_archives: top
@@ -97,11 +87,31 @@ types:
     id: 108
   csv:
     enabled: true
-    patterns: ['*.csv']
+    patterns: ["*.csv"]
     bin: dfir_csv.py
     args: ["{in}", "{out}"]
-    route_mode: walk
+    route_mode: bundle
     inherit_type: false
     expand_archives: top
     timezone: UTC
     id: 110
+  csv-headerless:
+    enabled: true
+    patterns: ["*.csv"]
+    bin: dfir_csv.py
+    args: ["--column-headers", "column1,column2,column3,columnN", "{in}", "{out}"]
+    route_mode: bundle
+    inherit_type: false
+    expand_archives: top
+    timezone: UTC
+    id: 112
+  evtx:
+    enabled: true
+    patterns: ["*.evtx"]
+    bin: evtx_dump
+    args: ["-o", "jsonl", "--no-confirm-overwrite", "-f", "{out}", "{in}"]
+    route_mode: walk
+    inherit_type: false
+    expand_archives: top
+    timezone: UTC
+    id: 100
