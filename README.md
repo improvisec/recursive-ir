@@ -200,6 +200,8 @@ The first step in using the platform is adding new parser definitions. By defaul
 
 <img src="assets/images/sample_parsers.png" width="40%"/>
 
+Patterns specified for each parser entry are used to determine if the dropped artefacts or artefact folders will be processed by the corresponding parser binary. This allows processing the same artefact using multiple parsers such as evtx_dump and hayabusa for parsing .evtx files. 
+
 For example, the dissect framework uses a separate program called rdump to parse the output of target-query command and produce json files. By creating a script wrapper as shown below, one can combine target-query and rdump into a single executable that can be configured in the parser definition for parsing .evtx artefacts from a given raw artefact source. Note that the dissect python scripts used here were installed in "recursive" user's .venv folder. Recursive-IR doesn't normally ship with parser programs (except for a few Apache 2.0-licensed ones). Users should bring their own parsers into the platform.
 
 <img src="assets/images/dissect_evtx_script.png" width="60%"/>
@@ -213,7 +215,7 @@ In another example below, given the huge number of individual log files involved
 Parser entries can be copied or duplicated. This allows renaming a source type say "defender-device-timeline" as opposed to just plain csv.
 
 
-<img src="assets/images/duplicate_parser.png" width="40%"/>
+<img src="assets/images/duplicate_parser.png"/>
 
 Parser definitions are straight forward. Parameters are specified on the left side, and the corresponding arguments or values are specified on the right. Parameters without any corresponding arguments can also be specified. 
 
@@ -493,11 +495,11 @@ Once changes are saved, artefacts need to be re-ingested by performing a case re
 <a id="reloading-artefacts"></a>
 ## Reloading Case Artefacts
 
-As previously mentioned, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name source.ip to SrcIpAddress, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Access the reload panel from within the Case Management page via the target case's reload button as shown below:
+As mentioned in the introduction, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name SrcIpAddress to source.ip to enrich the events with geolocation information, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Access the reload panel from within the Case Management page via the target case's reload button as shown below:
 
 <img src="assets/images/case_reload.png"/>
 
-If one wants to just re-ingest the events into OpenSearch, plain reload is fine. However, if re-parsing is needed, an option is also available. Think of a scenario where using the analyst decided to re-parse the artefacts using plaso after enabling additional plugins. In the command line, case artefacts can be reloaded using the following command:
+If one wants to just re-ingest the events into OpenSearch, plain reload is fine. However, if re-parsing is needed, an option is also available. Think of a scenario where the analyst decides to re-parse the artefacts using plaso after enabling additional plugins. In the command line, case artefacts can be reloaded using the following command:
 
 ```
 dfir case reload -c dfir-0001 
@@ -727,6 +729,35 @@ and routes them into:
 <a id="troubleshooting"></a>
 # 🛠 Troubleshooting
 
+## Viewing logs
+
+Use the following commands below to view different logs:
+
+Logs related to routing of raw artefacts from an inbox into a host's raw_artefacts folder:
+
+```journalctl -u dfir-watcher -f```
+
+To troubleshoot parsing related issues:
+
+```journalctl -u dfir-parser -f```
+
+To see the logs related to web UI actions handled by the worker process:
+
+```journalctl -u dfir-worker -f```
+
+To see web API related logs:
+
+```sudo docker logs -f recursive-ir-api```
+
+To see web UI related logs:
+
+```sudo docker logs -f recursive-ir-ui```
+
+To see debugging information in the terminal, set VERBOSE to 1 or set debugging level to 3 when running a command such as:
+
+```VERBOSE=1 DFIR_HTTP_DEBUG=3 dfir osd patterns-push --include-private```
+
+
 ---
 
 ---
@@ -741,9 +772,4 @@ see LICENSE file inside recursive-ir repo.
 <a id="reporting-issues"></a>
 # Reporting Issues 
 
-Please use Github's Issues tab.
-
-TODO: slack channel for recursive-ir users 
-
-
-
+Please use Github's Issues/Discussions tab.
