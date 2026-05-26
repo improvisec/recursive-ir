@@ -727,17 +727,7 @@ if [[ ! -x "./bin/dfir" ]]; then
   exit 1
 fi
 
-sudo ./bin/dfir init --bootstrap-env --enable --create-recursive-user
-
-# Re-apply config permissions after dfir init creates or rewrites files
-chown root:recursive /etc/recursive-ir/conf
-chmod 2775 /etc/recursive-ir/conf
-
-if [[ -f /etc/recursive-ir/conf/field-mappings.yml ]]; then
-  chown dfir:recursive /etc/recursive-ir/conf/field-mappings.yml
-  chmod 660 /etc/recursive-ir/conf/field-mappings.yml
-fi
-
+sudo ./bin/dfir init --bootstrap-env --enable --create-recursive-user --skip-os-bootstrap
 
 # =========================
 # Update generated recursive.env
@@ -754,6 +744,15 @@ sed -i \
   -e "s|^OS_PASS=.*|OS_PASS=\"${OPENSEARCH_INITIAL_ADMIN_PASSWORD}\"|" \
   -e "s|^OSD_HOST_LAN=.*|OSD_HOST_LAN=\"http://${LAN_IP}\"|" \
   "${RI_CONF_ENV}"
+
+# Re-apply config permissions after dfir init creates or rewrites files
+chown root:recursive /etc/recursive-ir/env /etc/recursive-ir/conf
+chmod 2775 /etc/recursive-ir/env /etc/recursive-ir/conf
+
+if [[ -f /etc/recursive-ir/conf/field-mappings.yml ]]; then
+  chown dfir:recursive /etc/recursive-ir/conf/field-mappings.yml
+  chmod 660 /etc/recursive-ir/conf/field-mappings.yml
+fi
 
 # Start services only after their configs exist.
 if [[ -f "${RI_CONF_ENV}" ]]; then
@@ -853,9 +852,9 @@ fi
 
 echo "OpenSearch Dashboards API is ready. Pushing Recursive-IR templates and settings..."
 
-./bin/dfir os templates-push
-./bin/dfir osd patterns-push
-./bin/dfir osd settings-sync
+/usr/local/bin/dfir os templates-push
+/usr/local/bin/dfir osd patterns-push
+/usr/local/bin/dfir osd settings-sync
 
 # =========================
 # Verification + Summary
@@ -917,3 +916,4 @@ printf "%-28s %s\n" "Logstash Service:" "${LS_STATUS}"
 printf "%-28s %s\n" "Filebeat Service:" "${FB_STATUS}"
 echo "============================================================"
 echo
+
