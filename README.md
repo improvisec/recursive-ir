@@ -772,4 +772,5 @@ see LICENSE file inside recursive-ir repo.
 <a id="reporting-issues"></a>
 # Reporting Issues 
 
-Please use Github's Issues/Discussions tab.
+Please use Github's Issues/Discussions tab or ping me on Discord: https://discord.gg/hYc7nPG9j
+
