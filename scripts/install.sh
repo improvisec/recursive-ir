@@ -95,8 +95,7 @@ section "Add OpenSearch APT repo and install OpenSearch + Dashboards"
 install -m 0755 -d /etc/apt/keyrings
 
 # Use the official keyring name/path (matches OpenSearch docs)
-curl -fsSL https://artifacts.opensearch.org/publickeys/opensearch-release.pgp \
-  | gpg --dearmor --batch --yes -o /etc/apt/keyrings/opensearch-release-keyring
+curl -fsSL https://artifacts.opensearch.org/publickeys/opensearch-release.pgp | gpg --dearmor --batch --yes -o /etc/apt/keyrings/opensearch-release-keyring
 
 chmod 0644 /etc/apt/keyrings/opensearch-release-keyring
 
@@ -780,8 +779,7 @@ if ! command -v docker >/dev/null 2>&1; then
 
   install -m 0755 -d /etc/apt/keyrings
 
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-    | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
   chmod a+r /etc/apt/keyrings/docker.gpg
 
