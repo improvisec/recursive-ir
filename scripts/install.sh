@@ -916,4 +916,10 @@ printf "%-28s %s\n" "Logstash Service:" "${LS_STATUS}"
 printf "%-28s %s\n" "Filebeat Service:" "${FB_STATUS}"
 echo "============================================================"
 echo
-
+echo
+echo "============================================================"
+echo "Login to Recursive-IR using the following link:"
+echo
+echo "  http://${LAN_IP}/app/login?nextUrl=/recursive-ir"
+echo "============================================================"
+echo
