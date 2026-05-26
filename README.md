@@ -170,7 +170,7 @@ As of writing, Recursive-IR is actively being developed. For a list of all avail
 <a id="user-login"></a>
 ## Logging in to Recursive-IR Web User Interface
 
-Using the admin username and password set during the installation, login to Recursive-IR by visiting ```http://OSD_HOST_LAN```. 
+Using the admin username and password set during the installation, login to Recursive-IR for the first time by visiting ```http://OSD_HOST_LAN/app/login?nextUrl=/recursive-ir```. 
 
 <img src="assets/images/login.png" width="40%" />
 
