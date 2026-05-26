@@ -38,15 +38,15 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
 * [9. Reporting Issues](#reporting-issues)
 ---
 <a id="features"></a>
-## Features 
+# 2. Features 
 
-### Case Management and User Collaboration
+## 2.1 Case Management and User Collaboration
 
 * Case-centric investigations - Users can create one or more cases within the platform.
 * One or more users can be created (e.g., if multiple analysts are working on the same case) and their access to case artefacts is scoped, allowing them to work only on artefacts within their assigned case(s).
 * Case artefacts can be reloaded or re-parsed and reloaded anytime, such as when resolving field-mapping conflicts or during fields normalization. 
 
-### Artefacts Upload and Tracking
+## 2.2 Artefacts Upload and Tracking
 
 * Allows uploading of one or more artefacts into a target host within a case via a web interface or directly in the terminal.
 * Large artefacts are chunked and uploads can be resumed if interrupted.
@@ -54,41 +54,41 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
 * Artefacts of the same file names can be uploaded multiple times and will be handled accordingly (i.e., will not result in duplicate entries).
 * Supports uploading compressed artefacts.
 
-### Parallel Artefacts Parsing
+## 2.3 Parallel Artefacts Parsing
 
 * Orchestrate arbitrary parsers (e.g., hayabusa, dissect, plaso, evtx_dump,  etc.) to convert forensics artefacts into OpenSearch-ingestable jsonl format. 
 * Configurable timezone for each source type for more accurate forensics timelining.
 * Parser command lines are previewed in the UI so they can be tested directly in the terminal.
 * Configurable @timestamp -  Fields that contain date and time that will be used as the @timestamp field can be configured per source type, otherwise, @timestamp defaults to ingestion time. This allows ingestion of practically any jsonl files, even those that don't have any date/time fields.
 
-### Log Ingestion and Normalization
+## 2.4 Log Ingestion and Normalization
 
 * Dynamically generates filebeat input, logstash pipelines, and opensearch index template configuration files per source type. Users can customize these configuration files for any additional logic if needed.
 * Idempotent log ingestion. One or more uploaded artefacts containing similar events will not result into duplicate documents in OpenSearch once ingested. Document "fingerprint" used is configurable per source type.
 * Timezone normalization - @timestamp field of each ingested event is normalized into UTC timezone and an option to create an extra timestamp_TIMEZONE field(s) is available during case creation.
 * Field normalization - Field data types are mapped into those in Elastic Common Schema (ECS) for known fields, and dynamically determined for the unknown ones. Any conflict can be resolved easily through field mappings configuration interface. 
 
-### Event Enrichments
+## 2.5 Event Enrichments
 
 * Add persistent enrichments to events in OpenSearch such as tags and comments and automatically project them into OpenSearch Dashboards persistently (i.e., enrichments survive re-parsing or reloading of artefacts).
 * Group a specific set of events into "collections" and an easy toggle to add hand-picked events to the final investigation timeline.
 * Intuitive user interface for event enrichments, marking indicators of compromise, and pivoting during artefacts analysis. All searches performed are automatically saved in a "pivot tree".
 * Enrich each event with geo-location information. Recursive-IR uses its own MMDB-format IP Geolocation database generated from ipverse data at https://github.com/ipverse.
 
-### Sigma Rules Support
+## 2.6 Sigma Rules Support
 
 * Built-in support for sigma detection rules. Users can use Security Analytics plugin of OpenSearch Dashboards which comes with a number of detection rules for different source types, and create or import custom rules.
 
 
 ---
 <a id="quickstart"></a>
-# 🚀 Quickstart
+# 3. 🚀 Quickstart
 
 This guide walks you through a **fresh single-node installation** of Recursive-IR on any Ubuntu installation (tested on Ubuntu Server 24.03).
 
 ---
 
-## 1️⃣ Clone Recursive-IR
+## 3.1 Clone Recursive-IR
 
 ```bash
 git clone https://github.com/improvisec/recursive-ir.git
@@ -97,7 +97,7 @@ cd recursive-ir
 
 ---
 
-## 2️⃣ Install  OpenSearch Stack and Recursive-IR 
+## 3.2 Install  OpenSearch Stack and Recursive-IR 
 
 Recursive-IR comes with an installer script that automates everything needed to bring up the whole stack. Running the script might take several minutes as it downloads the needed packages including the latest OpenSearch and OpenSearch Dashboards, Filebeat, and Logstash, as well as the Docker images for Recursive-IR's web UI, API, and Nginx containers. The admin password specified in the below command MUST be a strong one, otherwise, installation may not be successful (e.g., initial login to the platform may fail.)
 
@@ -119,7 +119,7 @@ This installs and configures:
 
 ---
 
-# 🔎 Verify Full Stack
+## 3.3 Verify Full Stack
 
 Check system services:
 
@@ -143,7 +143,7 @@ sudo curl --cacert /etc/recursive-ir/certs/opensearch/root-ca.pem \
 
 ---
 
-# ✅ Installation Complete
+## 3.4 Installation Complete
 
 Your Recursive-IR deployment now includes:
 
@@ -160,7 +160,7 @@ To start using Recursive-IR for your investigations, access the following url (r
 
 ---
 <a id="user-guide"></a>
-# 📘 User Guide
+# 4. 📘 User Guide
 
 The Recursive-IR platform is mainly driven by an executable program called "dfir". All operations done via the web user interface will go through a "job" system where each job will be submitted to the appropriate backend API endpoint for queuing. This job will then be consumed and executed by a background systemd worker process called "dfir-worker" (which also runs the "dfir" executable). As such, all steps performed in the web interface as shown in this user guide, can also be executed directly on the terminal.
 
@@ -168,7 +168,7 @@ As of writing, Recursive-IR is actively being developed. For a list of all avail
 
 ---
 <a id="user-login"></a>
-## Logging in to Recursive-IR Web User Interface
+## 4.1 Logging in to Recursive-IR Web User Interface
 
 Using the admin username and password set during the installation, login to Recursive-IR for the first time by visiting ```http://OSD_HOST_LAN/app/login?nextUrl=/recursive-ir```. 
 
@@ -179,7 +179,7 @@ Once logged in, the web interface will show a number of sections for configuring
 <img src="assets/images/left_panel.png" width="40%" />
 
 <a id="status-cards"></a>
-## Quick Steps Status Cards
+## 4.2 Quick Steps Status Cards
 
 A number of steps are involved before forensics artefacts can be analysed using Recursive-IR during an incident response investigation. These steps can be summarized as follows:
 
@@ -194,7 +194,7 @@ In Step #2 for example, the application will detect if there are any parsers alr
 <img src="assets/images/quick_steps.png"/>
 
 <a id="new-parser"></a>
-## Adding a New Parser Definition 
+## 4.3 Adding a New Parser Definition 
 
 The first step in using the platform is adding new parser definitions. By default, Recursive-IR ships with a few sample parser definitions that can be enabled or disabled as needed. These parser definitions are only meant to show various ways on how to configure stand-alone parsers or create wrappers that can execute multiple programs in order to produce the final jsonl output needed for ingestion. 
 
@@ -293,7 +293,7 @@ OpenSearch Dashboards columns file:
 /etc/recursive-ir/opensearch-dashboards/columns.yml 
 ```
 <a id="new-case"></a>
-## Creating a New Case
+## 4.4 Creating a New Case
 Events in the Recursive-IR can be grouped logically into different cases. Each event will have a case_id field that associates the event to a case and is used for scoping users' access. This allows forensics investigator and incident responders to work on multiple cases within the same deployment, although a dedicated box is still recommended for complete isolation. 
 
 <img src="assets/images/case_panel.png" width="40%"/>
@@ -323,7 +323,7 @@ This will:
 
 ---
 <a id="new-host"></a>
-## Adding a New Host Into a Case
+## 4.5 Adding a New Host Into a Case
 
 Once the case is created, the case creation panel enters into edit mode where further changes can be made or the panel can be dismissed. At this point, the host panel will also appear on the right where new hosts can be added to the case. A host is represented by IP address so that all artefacts belonging to the host can be uploaded into it. For artefacts coming from non-host sources like cloud, reserved IP address are used instead just for tracking. An IP address, a list of IP addresses, or CIDR subnets (with limits) can be specified during host creation.
 
@@ -363,7 +363,7 @@ Below is the output when the command is ran in the terminal.
 <img src="assets/images/artefact_drop_instruction.png"/>
 
 <a id="uploading-artefacts"></a>
-## Uploading Artefacts
+## 4.6 Uploading Artefacts
 
 Once the host has been created, artefacts can now be uploaded into that host's inbox folder via the web interface or directly in the terminal by placing them in this folder:
 
@@ -400,7 +400,7 @@ The dfir-parser service will automatically:
 
 ---
 <a id="new-user"></a>
-## Creating Users
+## 4.7 Creating Users
 
 To allow collaborative investigations, additional users can be created by accessing the Users tab within the Settings Panel. During the user creation, one or more cases must be assigned to the user. The user can then be given "case_admin" role to further allow case-related operations (e.g., reloading artefacts, creating hosts, etc.). The password for the newly created user will be displayed briefly on the screen and will automatically disappear within 5 minutes. A new password can be regenerated anytime from within the same panel.
 
@@ -427,7 +427,7 @@ Note: Recursive-IR's Web UI and API lives on the same box as OpenSearch and Open
 
 ---
 <a id="customizing-columns"></a>
-## Customizing Columns in OSD and Pivot Page
+## 4.8 Customizing Columns in OSD and Pivot Page
 
 When exploring events in OpenSearch Dashboards, sometimes it is useful to have a pre-defined set of columns shown depending on which Log source type is being viewed. For example, an analyst would be interested to see the Computer, Channel, Provider, and Event ID of each evtxjson-* events. On the other hand, when viewing nginx or apache web server logs (e.g., nginxjson-*), one would be more interested in the request_method, request_path, source.ip, or source.geo.country_name. 
 
@@ -444,7 +444,7 @@ The fields grouped together will also form the event_summary field for the event
 
 ---
 <a id="timestamp-fields"></a>
-## Selecting @timestamp Fields
+## 4.9 Selecting @timestamp Fields
 
 When an event is ingested, Recursive-IR's logstash pipeline selects from a pre-defined list of fields that contain date and time. Some events will have multiple fields, for example, Windows MFT artefacts will have MACB timestamps. To change the preferred timestamp prioritization or order, re-arrange the timestamps list in the Settings panel's Timestamp tab. New fields can also be added to the list. If an event doesn't have any field in the list, the @timestamp field will be set to the ingestion time and a warning banner is displayed. To resolve this, inspect sample events from the selected index or data view to find a field that may contain date and time that can be used for the timestamp field.  
 
@@ -457,7 +457,7 @@ Clicking the banner will display the data views with event timestamps falling ba
 ---
 
 <a id="mapping-fields"></a>
-## Mapping Fields and Resolving Conflicts
+## 4.10 Mapping Fields and Resolving Conflicts
 
 In order to leverage OpenSearch's powerful search engine, events ingested should have fields mapped into their appropriate types. A string containing an IP address for example, when mapped to the "ip" data type, allows searching for IPs included in the same cidr subnet. Think of a scenario where you found an IP address indicator and you suspect that the threat actor uses other IPs in the same subnet.
 
@@ -493,7 +493,7 @@ Once changes are saved, artefacts need to be re-ingested by performing a case re
 
 ---
 <a id="reloading-artefacts"></a>
-## Reloading Case Artefacts
+## 4.11 Reloading Case Artefacts
 
 As mentioned in the introduction, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name SrcIpAddress to source.ip to enrich the events with geolocation information, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Access the reload panel from within the Case Management page via the target case's reload button as shown below:
 
@@ -511,7 +511,7 @@ dfir case reload -c dfir-0001 --reparse
 
 ---
 <a id="enriching-events"></a>
-## Enriching Events
+## 4.12 Enriching Events
 
 Recursive-IR uses field value type "URL" to add a clickable link on the "Add_Enrichment" field, that when clicked, will take the user to the enrichment UI where the user can pivot from (e.g., perform additional searches after inspecting the event), add enrichments such as tags, comments, collections, IOCs, and timeline. 
 
@@ -544,7 +544,7 @@ Certain enrichments can be added in bulk such as tags, iocs, and collections by 
 
 ---
 <a id="pivoting-event"></a>
-## 🔍 Pivoting From an Event
+## 4.13 Pivoting From an Event
 
 From Pivot event, a any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
 
@@ -566,7 +566,7 @@ To make the search results more useable for analysis (e.g., to filter out noise 
 <img src="assets/images/field_stats.png" width="40%" />
 
 <a id="pivot-tree"></a>
-## 🔍 The Investigation Pivot Tree
+## 4.14 The Investigation Pivot Tree
 
 Hovering over to the left edge of the UI will bring out the Investigation tree. This is sort of like an automatically created breadcrumbs everytime a new pivot event is loaded or searches are performed. This tree keeps track of the analyst's investigation by logging what searches are performed, how a particular event was found, e.g., by pivoting from one event to another. In OpenSearch Dashboards, this could be similar to some degree to "saved searches", but without the user having to manually save anything. The tree can be cleared anytime as needed.
 
@@ -577,9 +577,9 @@ Hovering over to the left edge of the UI will bring out the Investigation tree. 
 
 ---
 <a id="directory-layout"></a>
-# 📁 Directory Layout
+# 5. 📁 Directory Layout
 
-#### 🔎 OpenSearch
+## 5.1 OpenSearch
 
 | Path | Purpose |
 |------|---------|
@@ -596,7 +596,7 @@ https://127.0.0.1:9200
 
 ---
 
-#### 📊 OpenSearch Dashboards
+## 5.2 OpenSearch Dashboards
 
 | Path | Purpose |
 |------|---------|
@@ -613,7 +613,7 @@ External access is handled by nginx (accessible via OSD_HOST_LAN).
 
 ---
 
-#### 🔁 Logstash 
+## 5.3 Logstash 
 
 | Path | Purpose |
 |------|---------|
@@ -624,7 +624,7 @@ External access is handled by nginx (accessible via OSD_HOST_LAN).
 
 ---
 
-#### 📦 Filebeat 
+## 5.4 Filebeat 
 
 | Path | Purpose |
 |------|---------|
@@ -635,7 +635,7 @@ External access is handled by nginx (accessible via OSD_HOST_LAN).
 
 ---
 
-#### 🗂 Recursive-IR 
+## 5.5 Recursive-IR 
 
 | Path | Purpose |
 |------|---------|
@@ -648,7 +648,7 @@ External access is handled by nginx (accessible via OSD_HOST_LAN).
 
 ---
 
-#### 🔐 TLS Certificates
+## 5.6 TLS Certificates
 
 All OpenSearch TLS materials are stored under:
 
@@ -657,7 +657,7 @@ All OpenSearch TLS materials are stored under:
 ```
 ---
 
-## Configuration Files
+## 5.7 Configuration Files
 
 ```
 /etc/recursive-ir/conf
@@ -674,7 +674,7 @@ All OpenSearch TLS materials are stored under:
 └── opensearch-dashboards/
 ```
 
-## Case Artefacts
+## 5.8 Case Artefacts
 
 ```
 /var/log/recursive-ir/cases/
@@ -692,7 +692,7 @@ All OpenSearch TLS materials are stored under:
 
 ---
 <a id="systemd-units"></a>
-#  Systemd Units 
+#  6. Systemd Units 
 
 
 - dfir-watcher - Watches for artefacts dropped into a host inbox folder:
@@ -727,9 +727,7 @@ and routes them into:
 
 ---
 <a id="troubleshooting"></a>
-# 🛠 Troubleshooting
-
-## Viewing logs
+# 7. 🛠 Troubleshooting
 
 Use the following commands below to view different logs:
 
@@ -762,7 +760,7 @@ To see debugging information in the terminal, set VERBOSE to 1 or set debugging 
 
 ---
 <a id="license"></a>
-# 📄 License
+# 8. 📄 License
 
 ```
 see LICENSE file inside recursive-ir repo.
@@ -770,7 +768,7 @@ see LICENSE file inside recursive-ir repo.
 
 ---
 <a id="reporting-issues"></a>
-# Reporting Issues 
+# 9. Reporting Issues 
 
 Please use Github's Issues/Discussions tab or ping me on Discord: https://discord.gg/hYc7nPG9j
 
