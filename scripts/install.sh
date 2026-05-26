@@ -249,6 +249,8 @@ EOF
 chmod 440 /etc/sudoers.d/recursive-ir-dfir
 visudo -cf /etc/sudoers.d/recursive-ir-dfir
 
+mkdir -p /etc/recursive-ir/conf
+
 chown root:recursive /etc/recursive-ir
 chmod 755 /etc/recursive-ir
 
