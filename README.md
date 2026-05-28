@@ -546,7 +546,7 @@ Certain enrichments can be added in bulk such as tags, iocs, and collections by 
 <a id="pivoting-event"></a>
 ## 4.13 Pivoting From an Event
 
-From the Pivot event within the enrichment UI, any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
+From Pivot event, a any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
 
 - Wildcard search (`.wc` fields) - A search for *search_term* anywhere in the field. This is the most accurate search but is slightly slower than word search. 
 - Word search - A search for "search_term" using OpenSearch's text analysers where fields are broken down into tokens to perform lighting fast searches. This is achieved by creating a "reverse index" mapping each token into events where such token appears.
