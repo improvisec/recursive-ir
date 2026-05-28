@@ -1,9 +1,8 @@
 # Recursive-IR configuration file
 # Copyright (c) 2026 Mark Jayson Alvarez
 # Licensed under the Recursive-IR License
-# Auto-generated. Manual edits may be overwritten.
 #
-#
+# Recursive-IR field mappings
 # Each top-level key corresponds to an index pattern name,
 # e.g. evtxjson, mftjson, hayabusajson, dissect_evtxjson.
 # Sections under each key rename/copy/drop/derive/set_if_present/stringify/store_only
@@ -60,362 +59,210 @@
     #   event.blob_hash["Details_ScriptBlock"]
     #   event.blobs["Details_ScriptBlock"]        (full, _source-only)
 
-# ----------------------------------------------------------------
-# cloudtrailjson (auto-generated skeleton by dfir parser new)
-# ----------------------------------------------------------------
-cloudtrailjson:
-  rename:
-    sourceIPAddress: source.ip
-
-  copy: {}
-
-  set_if_present: {}
-
-  drop: []
-
-  derive: {}
-
-  stringify:
-    - requestParameters.map.groupBy
-    - requestParameters.DescribeSecurityGroupRulesRequest
-    - requestParameters.DescribeVpcEndpointsRequest
-    - requestParameters.DescribeEgressOnlyInternetGatewaysRequest
-    - requestParameters.DescribeLaunchTemplatesRequest
-    - requestParameters.DescribeVpcEndpointServicesRequest
-    - requestParameters.DescribeNatGatewaysRequest
-    - requestParameters.bucketPolicy
-    - requestParameters.bucketPolicy.Statement
-    - requestParameters.bucketPolicy.Statement.Principal
-    - requestParameters.startTime
-    - requestParameters.filter
-    - requestParameters.endTime
-    - responseElements.role
-    - requestParameters
-    - requestParameters.DescribeTransitGatewaysRequest
-    - requestParameters.DescribeTransitGatewaysRequest.Filter
-    - requestParameters.DescribeTransitGatewaysRequest.Filter.Value
-    - requestParameters.DescribeTransitGatewaysRequest.Filter.Value.content
-
-  store_only:
-    max_bytes: 8192
-    preview_bytes: 8192
-    add_sha256: true
-    fields:
-      - event.original
-
-# ----------------------------------------------------------------
-# csvjson (auto-generated skeleton by dfir parser new)
-# ----------------------------------------------------------------
-csvjson:
-  rename: {}
-
-  copy:
-    original_client_ip:
-      - source.ip
-
-  set_if_present: {}
-
-  drop: []
-
-  derive: {}
-
-  stringify: []
-
-  store_only:
-    max_bytes: 8192
-    preview_bytes: 8192
-    add_sha256: true
-    fields:
-      - event.original
-
-# ----------------------------------------------------------------
-# dissect-evtxjson (auto-generated skeleton by dfir parser new)
-# ----------------------------------------------------------------
-dissect-evtxjson:
-  rename:
-    _source: dissect_source
-    source: dissect_source_artefact
-    _type: dissect_type
-    _version: dissect_version
-    _recorddescriptor: dissect_recorddescriptor
-    url: dissect_url
-
-  copy: {}
-
-  set_if_present: {}
-
-  drop: []
-
-  derive: {}
-
-  stringify:
-    - dissect_url
-    - dissect_version
-    - dissect_type
-    - dissect_source
-    - dissect_source_artefact
-    - dissect_recorddescriptor
-    - Event
-    - Event.EventData.Data
-    - Event.System.EventID
-    - Event.EventData
-    - Event.System
-    - Event.UserData
-    - Event.UserData.EventData
-    - "Event.EventData.#attributes"
-    - Event.UserData.CertNotificationData
-    - Event.UserData.InitChannelPublisherEnableFailure
-
-  store_only:
-    max_bytes: 8192
-    preview_bytes: 8192
-    add_sha256: true
-    fields:
-      - event.original
 
 # ----------------------------------------------------------------
 # evtxjson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
 evtxjson:
+  # rename:
   rename: {}
-
   copy: {}
-
   set_if_present: {}
-
   drop: []
-
-  derive: {}
-
-  stringify:
-    - "Event.EventData.#attributes"
-    - Event.UserData.MemoryExhaustionInfo
-    - Event.UserData.Operation_StartedOperational
-    - Event.UserData.CompatibilityFixEvent
-    - Event.UserData.CommitLimitExhaustion
-    - Event.UserData.Operation_ClientFailure
-    - Event.UserData.EventInfo
-    - Event.UserData.SessionInfoEvent
-    - Event.UserData.InvalidCommitLimitExhaustion
-    - Event.UserData.CbsPackageInitiateChanges
-    - Event.UserData.CbsPackageChangeState
-    - Event.UserData.EventData
-    - Event.UserData.DroppedLeakDiagnosisEventInfo
-    - Event.UserData.ChangingDefaultPrinter
-    - Event.UserData.RmUnsupportedRestartEvent
-    - Event.UserData.RmRestartEvent
-    - Event.UserData.CbsUpdateChangeState
-    - Event.UserData.RmApplicationEvent
-    - Event.UserData.CertVerifyCertificateChainPolicy
-    - Event.UserData.CertGetCertificateChain
-    - Event.UserData.CertGetCertificateChainStart
-    - Event.UserData.CertNotificationData
-    - Event.UserData.CertVerifyRevocation
-    - Event.UserData.CertVerifyRevocationStart
-    - Event.UserData.ResolverFiredEvent
-    - Event.UserData.X509Objects
-    - Event.UserData.InstallDeviceID
-    - Event.UserData.AddServiceID
-    - Event.UserData.Operation_TemporaryEssStarted
-    - Event.UserData.WinVerifyTrust
-    - Event.UserData.WinVerifyTrustStart
-    - Event.UserData.CryptRetrieveObjectByUrlCache
-    - Event.UserData.CryptRetrieveObjectByUrlCacheStart
-    - Event.UserData.ServiceShutdown
-    - Event.UserData.ProgramChangeInfoEvent
-    - Event.UserData.UMDFReflectorDependencyMissing
-    - Event.UserData.AuditEventsDropped
-    - Event.UserData.data_0x8000003F
-    - Event.EventData.ComplexData
-    - Event.UserData.UMDFDeviceInstallBegin
-    - Event.UserData.UMDFDeviceInstallEnd
-    - Event.UserData.UMDFServiceInstall
-    - Event.UserData.updateCount
-    - Event.UserData.Operation_ESStoConsumerBinding
-    - Event.UserData.Operation_EssStarted
-    - Event.UserData.LoadPluginFailed
-    - Event.UserData.INFO_PNP_STATE
-    - Event.UserData.CbsStoreCorruptionRepairFinish
-    - Event.UserData.NotificationInfo
-    - Event.UserData.ResolverDisplayInfo
-    - Event.UserData.UICloseInfo
-    - Event.UserData.CbsStoreCorruptionRepairStart
-    - Event.UserData.HelpedUserEvent
-    - Event.UserData.LogFileCleared
-
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
   store_only:
     max_bytes: 8192
     preview_bytes: 8192
     add_sha256: true
     fields:
       - event.original
-
+# ----------------------------------------------------------------
+# dissect-evtxjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+dissect-evtxjson:
+  # rename:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192
+    add_sha256: true
+    fields:
+      - event.original
 # ----------------------------------------------------------------
 # hayabusajson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
 hayabusajson:
+  # rename:
   rename: {}
-
   copy: {}
-
   set_if_present: {}
-
   drop: []
-
-  derive: {}
-
+  derive:
+    basename: []
+    parentdirs: []
   stringify: []
-
   store_only:
     max_bytes: 8192
     preview_bytes: 8192
     add_sha256: true
     fields:
       - event.original
-
-# ----------------------------------------------------------------
-# json-arrayjson (auto-generated skeleton by dfir parser new)
-# ----------------------------------------------------------------
-json-arrayjson:
-  rename: {}
-
-  copy: {}
-
-  set_if_present: {}
-
-  drop: []
-
-  derive: {}
-
-  stringify: []
-
-  store_only:
-    max_bytes: 8192
-    preview_bytes: 8192
-    add_sha256: true
-    fields:
-      - event.original
-
-# ----------------------------------------------------------------
-# json-passthroughjson (auto-generated skeleton by dfir parser new)
-# ----------------------------------------------------------------
-json-passthroughjson:
-  rename: {}
-
-  copy:
-    ClientIPAddress:
-      - source.ip
-
-  set_if_present: {}
-
-  drop: []
-
-  derive: {}
-
-  stringify: []
-
-  store_only:
-    max_bytes: 8192
-    preview_bytes: 8192
-    add_sha256: true
-    fields:
-      - event.original
-
 # ----------------------------------------------------------------
 # mftjson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
 mftjson:
+  # rename:
   rename: {}
-
   copy: {}
-
   set_if_present: {}
-
   drop: []
-
-  derive: {}
-
-  stringify: []
-
-  store_only:
-    max_bytes: 8192
-    preview_bytes: 8192
-    add_sha256: true
-    fields:
-      - event.original
-
-# ----------------------------------------------------------------
-# nginxjson (auto-generated skeleton by dfir parser new)
-# ----------------------------------------------------------------
-nginxjson:
-  rename: {}
-
-  copy:
-    remote_addr:
-      - "[source][ip]"
-
-  set_if_present: {}
-
-  drop: []
-
   derive:
-    basename:
-      - request_path
+    basename: []
     parentdirs: []
-
-  stringify:
-    - server
-
+  stringify: []
   store_only:
     max_bytes: 8192
     preview_bytes: 8192
     add_sha256: true
     fields:
       - event.original
-
 # ----------------------------------------------------------------
 # plasojson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
 plasojson:
+  # rename:
   rename: {}
-
   copy: {}
-
   set_if_present: {}
-
   drop: []
-
-  derive: {}
-
+  derive:
+    basename: []
+    parentdirs: []
   stringify: []
-
   store_only:
     max_bytes: 8192
     preview_bytes: 8192
     add_sha256: true
     fields:
       - event.original
-
-
+# ----------------------------------------------------------------
+# json-arrayjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+json-arrayjson:
+  # rename:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192
+    add_sha256: true
+    fields:
+      - event.original
+# ----------------------------------------------------------------
+# json-passthroughjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+json-passthroughjson:
+  # rename:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192
+    add_sha256: true
+    fields:
+      - event.original
+# ----------------------------------------------------------------
+# nginxjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+nginxjson:
+  # rename:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192
+    add_sha256: true
+    fields:
+      - event.original
+# ----------------------------------------------------------------
+# cloudtrailjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+cloudtrailjson:
+  # rename:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192
+    add_sha256: true
+    fields:
+      - event.original
+# ----------------------------------------------------------------
+# csvjson (auto-generated skeleton by dfir parser new)
+# ----------------------------------------------------------------
+csvjson:
+  # rename:
+  rename: {}
+  copy: {}
+  set_if_present: {}
+  drop: []
+  derive:
+    basename: []
+    parentdirs: []
+  stringify: []
+  store_only:
+    max_bytes: 8192
+    preview_bytes: 8192
+    add_sha256: true
+    fields:
+      - event.original
 # ----------------------------------------------------------------
 # csv-headerlessjson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
 csv-headerlessjson:
   # rename:
   rename: {}
-
   copy: {}
-
   set_if_present: {}
-
   drop: []
-
-  derive: 
-    basename: [] 
-    parentdirs: [] 
-
+  derive:
+    basename: []
+    parentdirs: []
   stringify: []
-
   store_only:
     max_bytes: 8192
     preview_bytes: 8192

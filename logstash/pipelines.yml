@@ -33,8 +33,6 @@
   path.config: /etc/recursive-ir/logstash/pipelines/105-json-arrayjson.conf
 - pipeline.id: nginxjson
   path.config: /etc/recursive-ir/logstash/pipelines/106-nginxjson.conf
-- pipeline.id: linuxfsjson
-  path.config: /etc/recursive-ir/logstash/pipelines/107-linuxfsjson.conf
 - pipeline.id: cloudtrailjson
   path.config: /etc/recursive-ir/logstash/pipelines/108-cloudtrailjson.conf
 - pipeline.id: json-passthroughjson
@@ -43,3 +41,7 @@
   path.config: /etc/recursive-ir/logstash/pipelines/110-csvjson.conf
 - pipeline.id: csv-headerlessjson
   path.config: /etc/recursive-ir/logstash/pipelines/113-csv-headerlessjson.conf
+- pipeline.id: dissect-evtx-duplicatejson
+  path.config: /etc/recursive-ir/logstash/pipelines/107-dissect-evtx-duplicatejson.conf
+- pipeline.id: custom-parser-1json
+  path.config: /etc/recursive-ir/logstash/pipelines/111-custom-parser-1json.conf

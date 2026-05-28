@@ -1,6 +1,5 @@
 global:
   default_columns:
-
 types:
   evtxjson:
     default_columns:
@@ -48,4 +47,3 @@ types:
     # Columns listed here become the initial set of columns in Discover
     # for csv-headerlessjson-*.
     default_columns: []
-

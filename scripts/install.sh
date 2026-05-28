@@ -28,6 +28,9 @@ RI_NODE_CERT="${RI_CERTS_OS}/node.pem"
 RI_NODE_KEY="${RI_CERTS_OS}/node-key.pem"
 RI_ADMIN_CERT="${RI_CERTS_OS}/admin.pem"
 RI_ADMIN_KEY="${RI_CERTS_OS}/admin-key.pem"
+RI_CERTS_NGINX="${RI_ETC_BASE}/certs/nginx"
+RI_NGINX_CERT="${RI_CERTS_NGINX}/recursive-ir.crt"
+RI_NGINX_KEY="${RI_CERTS_NGINX}/recursive-ir.key"
 
 # Your shipped config locations
 RI_CONF_ENV="${RI_ETC_BASE}/env/recursive.env"
@@ -421,6 +424,23 @@ sudo chmod 0600 "${RI_CA_KEY}" "${RI_ADMIN_KEY}"
 # Admin cert not needed by the running service; keep it readable for root
 sudo chown root:root "${RI_ADMIN_CERT}"
 sudo chmod 0644 "${RI_ADMIN_CERT}"
+
+section "Generate Nginx HTTPS TLS certificate under ${RI_CERTS_NGINX}"
+
+mkdir -p "${RI_CERTS_NGINX}"
+
+if [[ ! -f "${RI_NGINX_CERT}" || ! -f "${RI_NGINX_KEY}" ]]; then
+  openssl req -x509 -nodes -newkey rsa:4096 \
+    -keyout "${RI_NGINX_KEY}" \
+    -out "${RI_NGINX_CERT}" \
+    -days 3650 \
+    -subj "/CN=recursive-ir"
+fi
+
+chown root:root "${RI_CERTS_NGINX}" "${RI_NGINX_CERT}" "${RI_NGINX_KEY}"
+chmod 0755 "${RI_CERTS_NGINX}"
+chmod 0644 "${RI_NGINX_CERT}"
+chmod 0600 "${RI_NGINX_KEY}"
 
 # (Optional) serial file isn't needed by the service; keep it root-only or group-readable
 # chown root:root "${RI_CERTS_OS}/root-ca.srl" 2>/dev/null || true
@@ -923,3 +943,4 @@ echo
 echo "  http://${LAN_IP}/app/login?nextUrl=/recursive-ir"
 echo "============================================================"
 echo
+

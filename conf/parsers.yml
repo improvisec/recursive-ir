@@ -5,8 +5,28 @@
 #
 default_type: other
 types:
+  cloudtrail:
+    enabled: false
+    patterns: ["awslogs"]
+    bin: dfir_cloudtrail.sh
+    args: ["{in}", "{out}"]
+    route_mode: bundle
+    inherit_type: false
+    expand_archives: top
+    timezone: UTC
+    id: 108
+  evtx:
+    enabled: false
+    patterns: ["*.evtx"]
+    bin: evtx_dump
+    args: ["-o", "jsonl", "--no-confirm-overwrite", "-f", "{out}", "{in}"]
+    route_mode: walk
+    inherit_type: false
+    expand_archives: top
+    timezone: UTC
+    id: 100
   dissect-evtx:
-    enabled: true
+    enabled: false
     patterns: ["*.vmdk"]
     bin: dfir_dissect_evtx.sh
     args: ["evtx", "{in}", "{out}"]
@@ -14,9 +34,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 104
+    id: 101
   hayabusa:
-    enabled: true
+    enabled: false
     patterns: ["winevt"]
     bin: hayabusa
     args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "--directory", "{in}"]
@@ -24,9 +44,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 101
+    id: 102
   mft:
-    enabled: true
+    enabled: false
     patterns: ["*MFT", "*mft"]
     bin: dfir
     args: ["parse", "mft", "--in", "{in}", "--out", "{out}"]
@@ -34,9 +54,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 102
+    id: 103
   plaso:
-    enabled: true
+    enabled: false
     patterns: ["plaso"]
     bin: psteal.py
     args: ["--source", "{in}", "--parsers", "android,ios,linux,macos,mactime,webhist,win7,win7_slow,win_gen,winxp,winxp_slow,android_app_usage,asl_log,bencode,binary_cookies,bodyfile,bsm_log,chrome_cache,chrome_preferences,cups_ipp,custom_destinations,czip,esedb,filestat,firefox_cache,firefox_cache2,fish_history,fseventsd,java_idx,jsonl,lnk,locate_database,mac_keychain,mcafee_protection,mft,msiecf,networkminer_fileinfo,olecf,onedrive_log,opera_global,opera_typed_history,pe,plist,pls_recall,prefetch,recycle_bin,recycle_bin_info2,rplog,simatic_s7,spotlight_storedb,sqlite,symantec_scanlog,systemd_journal,text,trendmicro_url,trendmicro_vd,unified_logging,usnjrnl,utmp,utmpx,wincc_sys,windefender_history,winevt,winevtx,winjob,winpca_db0,winpca_dic,winreg", "-o", "json_line", "-w", "{out}", "--artifact_definitions", "/usr/share/plaso/artifacts/artifacts/data/", "-q", "-u", "--status_view", "none"]
@@ -44,9 +64,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 103
+    id: 104
   json-array:
-    enabled: true
+    enabled: false
     patterns: ["*.json"]
     bin: dfir_json_array.sh
     args: ["{in}", "{out}"]
@@ -56,7 +76,7 @@ types:
     timezone: UTC
     id: 105
   json-passthrough:
-    enabled: true
+    enabled: false
     patterns: ["*.json"]
     bin: dfir_json_passthrough.sh
     args: ["{in}", "{out}"]
@@ -64,9 +84,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 109
+    id: 106
   nginx:
-    enabled: true
+    enabled: false
     patterns: ["*access.log*", "*error.log*"]
     bin: dfir_nginx.py
     args: ["{in}", "{out}"]
@@ -74,19 +94,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 106
-  cloudtrail:
-    enabled: true
-    patterns: ["awslogs"]
-    bin: dfir_cloudtrail.sh
-    args: ["{in}", "{out}"]
-    route_mode: bundle
-    inherit_type: false
-    expand_archives: top
-    timezone: UTC
-    id: 108
+    id: 107
   csv:
-    enabled: true
+    enabled: false
     patterns: ["*.csv"]
     bin: dfir_csv.py
     args: ["{in}", "{out}"]
@@ -94,9 +104,9 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 110
+    id: 109
   csv-headerless:
-    enabled: true
+    enabled: false
     patterns: ["*.csv"]
     bin: dfir_csv.py
     args: ["--column-headers", "column1,column2,column3,columnN", "{in}", "{out}"]
@@ -104,14 +114,4 @@ types:
     inherit_type: false
     expand_archives: top
     timezone: UTC
-    id: 112
-  evtx:
-    enabled: true
-    patterns: ["*.evtx"]
-    bin: evtx_dump
-    args: ["-o", "jsonl", "--no-confirm-overwrite", "-f", "{out}", "{in}"]
-    route_mode: walk
-    inherit_type: false
-    expand_archives: top
-    timezone: UTC
-    id: 100
+    id: 110
