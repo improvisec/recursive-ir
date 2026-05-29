@@ -1,5 +1,14 @@
 global:
   default_columns:
+    - source_type
+    - title
+    - description
+    - host_ip
+    - host_name
+    - dlq.orig_index
+    - dlq.summary
+    - dlq.error_field
+
 types:
   evtxjson:
     default_columns:
@@ -44,6 +53,4 @@ types:
   csvjson:
     default_columns:
   csv-headerlessjson:
-    # Columns listed here become the initial set of columns in Discover
-    # for csv-headerlessjson-*.
-    default_columns: []
+    default_columns:
