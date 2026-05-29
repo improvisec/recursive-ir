@@ -37,9 +37,9 @@ types:
     id: 101
   hayabusa:
     enabled: false
-    patterns: ["winevt"]
-    bin: hayabusa
-    args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "--directory", "{in}"]
+    patterns: ["*.evtx"]
+    bin: /home/recursive/hayabusa/target/release/hayabusa
+    args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "-f", "{in}"]
     route_mode: walk
     inherit_type: false
     expand_archives: top
