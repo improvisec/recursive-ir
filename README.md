@@ -29,9 +29,10 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
     * [4.10 Mapping Fields and Resolving Conflicts](#mapping-fields)
     * [4.11 Resetting Recursive-IR](#resetting-recursive-ir)
     * [4.12 Reloading Case Artefacts](#reloading-artefacts)
-    * [4.13 Enriching Events](#enriching-events)
-    * [4.14 Pivoting From an Event](#pivoting-event)
-    * [4.15 The Investigation Pivot Tree](#pivot-tree)
+    * [4.13 Re-syncing Recursive-IR](#resync-recursive-ir)
+    * [4.14 Enriching Events](#enriching-events)
+    * [4.15 Pivoting From an Event](#pivoting-event)
+    * [4.16 The Investigation Pivot Tree](#pivot-tree)
 * [5. Directory Layout](#directory-layout)
 * [6. Systemd Units](#systemd-units)
 * [7. Troubleshooting](#troubleshooting)
@@ -497,7 +498,14 @@ Once changes are saved, the indexed data along with the already stored dynamic m
 
 Recursive-IR offers a convenient way to purge already ingested data. This is useful when resolving ingestion data type mapping conflicts as mentioned in the previous section. The following options are available in the Maintenance panel:
 
-[placeholder - screenshot]
+<img src="assets/images/reset_recursive_ir.png"/>
+
+```Reset everything``` - Deletes OpenSearch indexed data, OpenSearch Dashboards data views, templates, and case folders.",
+```Reset indexed data and templates``` - Deletes all OpenSearch indexed data including index and component templates.",
+```Reset data views``` - Deletes OpenSearch Dashboards data views.
+```Reset case data``` - Deletes case folders including uploaded artefacts and case-related indexed data. Defaults to all cases unless specific case IDs are provided.
+
+For resolving mapping conflicts, 'Reset indexed data and templates" should suffice. Both "Reset everything" and "Reset indexed data" push the index templates, data views, and osd setttings again.  
 
 ---
 <a id="reloading-artefacts"></a>
@@ -518,8 +526,19 @@ dfir case reload -c dfir-0001 --reparse
 ```
 
 ---
+
+<a id="resync-recursive-ir"></a>
+## 4.13 Re-syncing Recursive-IR 
+
+If for some reason, the index templates have been removed from OpenSearch, they can be re-pushed from ```/etc/recursive-ir/opensearch/templates``` folder via the Maintenance panel's ```Sync Recursive-IR```. This action also pushes data views and performs fields refresh (similar to clicking "Refresh fields list" from within the "Dashboards Management -> Index patterns -> [index]". OpenSearch dashboards settings such as default columns, dark theme, as well as Add_Enrichment URL-type value are also pushed.
+
+
+<img src="assets/images/resync_recursive_ir.png"/>
+
+---
+
 <a id="enriching-events"></a>
-## 4.13 Enriching Events
+## 4.14 Enriching Events
 
 Recursive-IR uses field value type "URL" to add a clickable link on the "Add_Enrichment" field, that when clicked, will take the user to the enrichment UI where the user can pivot from (e.g., perform additional searches after inspecting the event), add enrichments such as tags, comments, collections, IOCs, and timeline. 
 
@@ -552,7 +571,7 @@ Certain enrichments can be added in bulk such as tags, iocs, and collections by 
 
 ---
 <a id="pivoting-event"></a>
-## 4.14 Pivoting From an Event
+## 4.15 Pivoting From an Event
 
 From Pivot event, a any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
 
@@ -574,7 +593,7 @@ To make the search results more useable for analysis (e.g., to filter out noise 
 <img src="assets/images/field_stats.png" width="40%" />
 
 <a id="pivot-tree"></a>
-## 4.15 The Investigation Pivot Tree
+## 4.16 The Investigation Pivot Tree
 
 Hovering over to the left edge of the UI will bring out the Investigation tree. This is sort of like an automatically created breadcrumbs everytime a new pivot event is loaded or searches are performed. This tree keeps track of the analyst's investigation by logging what searches are performed, how a particular event was found, e.g., by pivoting from one event to another. In OpenSearch Dashboards, this could be similar to some degree to "saved searches", but without the user having to manually save anything. The tree can be cleared anytime as needed.
 
