@@ -480,7 +480,7 @@ Once OpenSearch already mapped that field to an integer, succeeding events conta
 
 <img src="assets/images/error_field.png"/>
 
-Clicking the Explore button will take the user to the OpenSearch Dashboards Discover app where the default data view selected will be the "ingestion-error-*". The field that's causing the ingestion error can be inspected.
+In the Recursive-IR homepage, when there are ingestion errors, clicking the Explore button will take you to the OpenSearch Dashboards Discover app where the default data view selected will be the "ingestion-error-" instead of "alljson-". The field that's causing the ingestion error can be inspected.
 
 <img src="assets/images/ingestion_error.png"/>
 
@@ -488,7 +488,7 @@ To resolve this, fields can be normalised via the Field Mappings page. Stringify
 
 <img src="assets/images/sample_stringify.png"/>
 
-Once changes are saved, artefacts need to be re-ingested by performing a case reload through the Maintenance panel (see the next section).
+Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts has to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
 
 
 ---
