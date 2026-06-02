@@ -156,7 +156,7 @@ Your Recursive-IR deployment now includes:
 - Recursive-IR web user interface
 - nginx LAN gateway for controlled access
 
-To start using Recursive-IR for your investigations, access the following url (replace OSD_HOST_LAN with the correct IP address):
+To start using Recursive-IR for your investigations, access the following url (replace OSD_HOST_LAN with the correct IP address). OSD_HOST_LAN variable should also be set correctly in ```/etc/recursive-ir/recursive.env```.
 
 ```http://OSD_HOST_LAN```
 
