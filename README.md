@@ -27,10 +27,11 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
     * [4.8 Customizing Columns](#customizing-columns)
     * [4.9 Selecting @timestamp Fields](#timestamp-fields)
     * [4.10 Mapping Fields and Resolving Conflicts](#mapping-fields)
-    * [4.11 Reloading Case Artefacts](#reloading-artefacts)
-    * [4.12 Enriching Events](#enriching-events)
-    * [4.13 Pivoting From an Event](#pivoting-event)
-    * [4.14 The Investigation Pivot Tree](#pivot-tree)
+    * [4.11 Resetting Recursive-IR](#resetting-recursive-ir)
+    * [4.12 Reloading Case Artefacts](#reloading-artefacts)
+    * [4.13 Enriching Events](#enriching-events)
+    * [4.14 Pivoting From an Event](#pivoting-event)
+    * [4.15 The Investigation Pivot Tree](#pivot-tree)
 * [5. Directory Layout](#directory-layout)
 * [6. Systemd Units](#systemd-units)
 * [7. Troubleshooting](#troubleshooting)
@@ -490,10 +491,17 @@ To resolve this, fields can be normalised via the Field Mappings page. Stringify
 
 Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts has to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
 
+---
+<a id="resetting-recursive-ir"></a>
+## 4.11 Resetting Recursive-IR
+
+Recursive-IR offers a convenient way to purge already ingested data. This is useful when resolving ingestion data type mapping conflicts as mentioned in the previous section. The following options are available in the Maintenance panel:
+
+[placeholder - screenshot]
 
 ---
 <a id="reloading-artefacts"></a>
-## 4.11 Reloading Case Artefacts
+## 4.12 Reloading Case Artefacts
 
 As mentioned in the introduction, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name SrcIpAddress to source.ip to enrich the events with geolocation information, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Access the reload panel from within the Case Management page via the target case's reload button as shown below:
 
@@ -511,7 +519,7 @@ dfir case reload -c dfir-0001 --reparse
 
 ---
 <a id="enriching-events"></a>
-## 4.12 Enriching Events
+## 4.13 Enriching Events
 
 Recursive-IR uses field value type "URL" to add a clickable link on the "Add_Enrichment" field, that when clicked, will take the user to the enrichment UI where the user can pivot from (e.g., perform additional searches after inspecting the event), add enrichments such as tags, comments, collections, IOCs, and timeline. 
 
@@ -544,7 +552,7 @@ Certain enrichments can be added in bulk such as tags, iocs, and collections by 
 
 ---
 <a id="pivoting-event"></a>
-## 4.13 Pivoting From an Event
+## 4.14 Pivoting From an Event
 
 From Pivot event, a any string can be highlighted in order to access the search context menu (similar to when adding IOCs). The following explains the different search modes:
 
@@ -566,7 +574,7 @@ To make the search results more useable for analysis (e.g., to filter out noise 
 <img src="assets/images/field_stats.png" width="40%" />
 
 <a id="pivot-tree"></a>
-## 4.14 The Investigation Pivot Tree
+## 4.15 The Investigation Pivot Tree
 
 Hovering over to the left edge of the UI will bring out the Investigation tree. This is sort of like an automatically created breadcrumbs everytime a new pivot event is loaded or searches are performed. This tree keeps track of the analyst's investigation by logging what searches are performed, how a particular event was found, e.g., by pivoting from one event to another. In OpenSearch Dashboards, this could be similar to some degree to "saved searches", but without the user having to manually save anything. The tree can be cleared anytime as needed.
 
