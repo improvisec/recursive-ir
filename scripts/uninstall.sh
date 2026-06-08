@@ -47,6 +47,29 @@ purge_if_known() {
   fi
 }
 
+delete_user_if_exists() {
+  user_name="$1"
+
+  if id "$user_name" >/dev/null 2>&1; then
+    pkill -KILL -u "$user_name" 2>/dev/null || true
+    echo "+ userdel -r $user_name"
+    userdel -r "$user_name" >/dev/null 2>&1 || userdel "$user_name" >/dev/null 2>&1 || true
+  else
+    echo "+ skip missing user: $user_name"
+  fi
+}
+
+delete_group_if_exists() {
+  group_name="$1"
+
+  if getent group "$group_name" >/dev/null 2>&1; then
+    echo "+ groupdel $group_name"
+    groupdel "$group_name" >/dev/null 2>&1 || true
+  else
+    echo "+ skip missing group: $group_name"
+  fi
+}
+
 print_uninstall_plan() {
   cat <<'EOF'
 
@@ -91,6 +114,7 @@ Directories and files:
   /etc/opensearch
   /etc/opensearch-dashboards
   /var/lib/opensearch
+  /var/lib/opensearch-dashboards
   /var/log/opensearch
   /usr/share/opensearch
   /usr/share/opensearch-dashboards
@@ -268,26 +292,18 @@ rm -rf \
   /etc/opensearch \
   /etc/opensearch-dashboards \
   /var/lib/opensearch \
+  /var/lib/opensearch-dashboards \
   /var/log/opensearch \
   /usr/share/opensearch \
   /usr/share/opensearch-dashboards
 
 say "Remove installer-created users and groups"
 for u in recursive dfir logstash filebeat opensearch opensearch-dashboards; do
-  if id "$u" >/dev/null 2>&1; then
-    pkill -KILL -u "$u" 2>/dev/null || true
-    run userdel -r "$u"
-  else
-    echo "+ skip missing user: $u"
-  fi
+  delete_user_if_exists "$u"
 done
 
 for g in recursive dfir logstash filebeat opensearch opensearch-dashboards; do
-  if getent group "$g" >/dev/null 2>&1; then
-    run groupdel "$g"
-  else
-    echo "+ skip missing group: $g"
-  fi
+  delete_group_if_exists "$g"
 done
 
 say "Refresh systemd state"
