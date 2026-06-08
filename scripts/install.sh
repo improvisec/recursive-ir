@@ -224,7 +224,7 @@ id -u dfir >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbi
 usermod -aG recursive logstash
 usermod -aG recursive dfir
 
-cat > /etc/sudoers.d/recursive-ir-dfir <<'EOF'
+cat > /etc/sudoers.d/recursive-ir <<'EOF'
 dfir ALL=(ALL) NOPASSWD: \
   /bin/systemctl stop dfir-parser.timer, \
   /bin/systemctl start dfir-parser.timer, \
@@ -246,10 +246,12 @@ dfir ALL=(ALL) NOPASSWD: \
   /usr/local/bin/dfir parser *, \
   /usr/local/bin/dfir user, \
   /usr/local/bin/dfir user *
+
+recursive ALL=(ALL:ALL) ALL
 EOF
 
-chmod 440 /etc/sudoers.d/recursive-ir-dfir
-visudo -cf /etc/sudoers.d/recursive-ir-dfir
+chmod 440 /etc/sudoers.d/recursive-ir
+visudo -cf /etc/sudoers.d/recursive-ir
 
 mkdir -p /etc/recursive-ir/conf
 
