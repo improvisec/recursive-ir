@@ -93,11 +93,9 @@ This guide walks you through a **fresh single-node installation** of Recursive-I
 ## 3.1 Clone Recursive-IR
 
 ```bash
-sudo mkdir -p /opt
-cd /opt
-
-sudo git clone https://github.com/improvisec/recursive-ir.git
-
+sudo mkdir -p /opt && \
+cd /opt && \
+sudo git clone https://github.com/improvisec/recursive-ir.git && \
 cd /opt/recursive-ir
 ```
 
