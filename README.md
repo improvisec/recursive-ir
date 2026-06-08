@@ -500,10 +500,10 @@ Recursive-IR offers a convenient way to purge already ingested data. This is use
 
 <img src="assets/images/reset_recursive_ir.png"/>
 
-```Reset everything``` - Deletes OpenSearch indexed data, OpenSearch Dashboards data views, templates, and case folders.",
-```Reset indexed data and templates``` - Deletes all OpenSearch indexed data including index and component templates.",
-```Reset data views``` - Deletes OpenSearch Dashboards data views.
-```Reset case data``` - Deletes case folders including uploaded artefacts and case-related indexed data. Defaults to all cases unless specific case IDs are provided.
+- ```Reset everything``` - Deletes OpenSearch indexed data, OpenSearch Dashboards data views, templates, and case folders.",
+- ```Reset indexed data and templates``` - Deletes all OpenSearch indexed data including index and component templates.",
+- ```Reset data views``` - Deletes OpenSearch Dashboards data views.
+- ```Reset case data``` - Deletes case folders including uploaded artefacts and case-related indexed data. Defaults to all cases unless specific case IDs are provided.
 
 For resolving mapping conflicts, 'Reset indexed data and templates" should suffice. Both "Reset everything" and "Reset indexed data" push the index templates, data views, and osd setttings again.  
 
