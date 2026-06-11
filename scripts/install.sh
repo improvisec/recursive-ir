@@ -48,6 +48,50 @@ section() { echo; echo "==> $*"; }
 require_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1"; exit 1; }; }
 dpkg_ver() { dpkg -s "$1" 2>/dev/null | awk -F': ' '/^Version:/{print $2}'; }
 
+fix_opensearch_cert_permissions() {
+  # Canonical OpenSearch TLS permissions.
+  # OpenSearch needs CA/node cert/node key. Dashboards needs CA traversal/read access.
+  # CA/admin private keys stay root-only.
+  [[ -d "${RI_CERTS_OS}" ]] || return 0
+
+  chown root:opensearch "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
+  chmod 0755 "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
+
+  # Make sure opensearch can traverse /etc/opensearch.
+  chown root:opensearch /etc/opensearch
+  chmod 0770 /etc/opensearch
+
+  if [[ -f "${RI_CA}" ]]; then
+    chown root:opensearch "${RI_CA}"
+    chmod 0644 "${RI_CA}"
+  fi
+
+  if [[ -f "${RI_NODE_CERT}" ]]; then
+    chown root:opensearch "${RI_NODE_CERT}"
+    chmod 0640 "${RI_NODE_CERT}"
+  fi
+
+  if [[ -f "${RI_NODE_KEY}" ]]; then
+    chown opensearch:opensearch "${RI_NODE_KEY}"
+    chmod 0600 "${RI_NODE_KEY}"
+  fi
+
+  if [[ -f "${RI_CA_KEY}" ]]; then
+    chown root:root "${RI_CA_KEY}"
+    chmod 0600 "${RI_CA_KEY}"
+  fi
+
+  if [[ -f "${RI_ADMIN_KEY}" ]]; then
+    chown root:root "${RI_ADMIN_KEY}"
+    chmod 0600 "${RI_ADMIN_KEY}"
+  fi
+
+  if [[ -f "${RI_ADMIN_CERT}" ]]; then
+    chown root:root "${RI_ADMIN_CERT}"
+    chmod 0644 "${RI_ADMIN_CERT}"
+  fi
+}
+
 
 detect_lan_ip() {
   local ipaddr
@@ -382,24 +426,8 @@ rm -f "${RI_CERTS_OS}/node.csr" "${RI_CERTS_OS}/node.cnf"
 
 # ------------------------------------------------------------------
 # TLS file permissions
-# - OpenSearch runtime needs: CA cert, node cert, node key
-# - OpenSearch Dashboards needs: CA cert (public) to trust https
-# - Keep CA key + admin key root-only
 # ------------------------------------------------------------------
-
-# Allow traversal for BOTH opensearch + opensearch-dashboards (simple mode)
-# Dashboards must be able to reach the CA file path; easiest is +x for others on dirs.
-sudo chown root:opensearch "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
-sudo chmod 0755 "${RI_ETC_BASE}" "${RI_ETC_BASE}/certs" "${RI_CERTS_OS}"
-
-# Make sure opensearch can traverse /etc/opensearch (paranoia)
-sudo chown root:opensearch /etc/opensearch
-sudo chmod 0770 /etc/opensearch
-
-# --- OpenSearch runtime TLS material ---
-# CA is public; Dashboards reads it too.
-sudo chown root:opensearch "${RI_CA}"
-sudo chmod 0644 "${RI_CA}"
+fix_opensearch_cert_permissions
 
 # ------------------------------------------------------------------
 # Trust Recursive-IR root CA system-wide (so curl/dfir can talk to https://127.0.0.1:9200)
@@ -409,23 +437,6 @@ section "Install Recursive-IR root CA into system trust store"
 RI_CA_DST="/usr/local/share/ca-certificates/recursive-ir-root-ca.crt"
 install -m 0644 "${RI_CA}" "${RI_CA_DST}"
 update-ca-certificates
-
-# Node cert can be group-readable.
-sudo chown root:opensearch "${RI_NODE_CERT}"
-sudo chmod 0640 "${RI_NODE_CERT}"
-
-# Node key MUST be readable by the opensearch service user.
-# Tightest: make opensearch the owner and keep 0600.
-sudo chown opensearch:opensearch "${RI_NODE_KEY}"
-sudo chmod 0600 "${RI_NODE_KEY}"
-
-# --- Root-only secrets (service does NOT need these) ---
-sudo chown root:root "${RI_CA_KEY}" "${RI_ADMIN_KEY}"
-sudo chmod 0600 "${RI_CA_KEY}" "${RI_ADMIN_KEY}"
-
-# Admin cert not needed by the running service; keep it readable for root
-sudo chown root:root "${RI_ADMIN_CERT}"
-sudo chmod 0644 "${RI_ADMIN_CERT}"
 
 section "Generate Nginx HTTPS TLS certificate under ${RI_CERTS_NGINX}"
 
@@ -752,6 +763,11 @@ fi
 
 sudo ./bin/dfir init --bootstrap-env --enable --create-recursive-user --skip-os-bootstrap
 
+# dfir init normalizes /etc/recursive-ir for Recursive-IR services.
+# Re-assert the OpenSearch TLS permissions afterward so OpenSearch can still
+# traverse/read its cert material.
+fix_opensearch_cert_permissions
+
 # =========================
 # Update generated recursive.env
 # =========================
@@ -945,4 +961,3 @@ echo
 echo "  http://${LAN_IP}/app/login?nextUrl=/recursive-ir"
 echo "============================================================"
 echo
-
