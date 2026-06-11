@@ -1,0 +1,34 @@
+{
+  "index_patterns": ["security-auditlog-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": { "type": "date" },
+
+        "audit_cluster_name": { "type": "keyword" },
+        "audit_node_name": { "type": "keyword" },
+        "audit_node_id": { "type": "keyword" },
+        "audit_node_host_address": { "type": "ip" },
+        "audit_node_host_name": { "type": "keyword" },
+
+        "audit_category": { "type": "keyword" },
+        "audit_request_origin": { "type": "keyword" },
+        "audit_request_layer": { "type": "keyword" },
+        "audit_transport_request_type": { "type": "keyword" },
+        "audit_request_remote_address": { "type": "ip" },
+        "audit_request_effective_user": { "type": "keyword" },
+        "audit_request_privilege": { "type": "keyword" },
+
+        "audit_trace_task_id": { "type": "keyword" },
+        "audit_trace_indices": { "type": "keyword" },
+
+        "audit_format_version": { "type": "integer" }
+      }
+    }
+  }
+}
