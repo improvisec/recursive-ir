@@ -297,12 +297,12 @@ rm -rf \
   /usr/share/opensearch \
   /usr/share/opensearch-dashboards
 
-say "Remove installer-created users and groups"
-for u in recursive dfir logstash filebeat opensearch opensearch-dashboards; do
+say "Remove installer-created system users and groups"
+for u in dfir logstash filebeat opensearch opensearch-dashboards; do
   delete_user_if_exists "$u"
 done
 
-for g in recursive dfir logstash filebeat opensearch opensearch-dashboards; do
+for g in dfir logstash filebeat opensearch opensearch-dashboards; do
   delete_group_if_exists "$g"
 done
 

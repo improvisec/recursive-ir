@@ -2829,7 +2829,7 @@ async def _find_duplicate_job(db, action: str, payload_json: str, now: int):
 
 
 @api_v1.get("/jobs/{job_id}")
-async def job_status(job_id: int, req: Request):
+async def job_status(job_id: int, req: Request, include_output: bool = False):
     _, user, resp = _require_auth(req)
     if resp:
         return resp
@@ -2884,7 +2884,9 @@ async def job_status(job_id: int, req: Request):
             "finished_at": row[7],
             "last_error": row[8],
             "last_output": row[9],
-            "full_output": row[10],
+            "full_output": row[10] if include_output else None,
+            "has_full_output": bool(row[10]),
+            "full_output_size": len(row[10] or ""),
             "claimed_by": row[11],
             "claimed_at": row[12],
             "dedupe_key": row[13],

@@ -5,7 +5,7 @@
 # Licensed under the Recursive-IR License
 # ------------------------------------------------------------------
 """
-nginx_to_jsonl.py
+dfir_nginx.py
 
 DFIR-friendly Nginx log -> JSONL converter.
 
