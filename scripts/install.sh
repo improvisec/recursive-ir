@@ -8,8 +8,8 @@
 #
 # - Single-node + loopback only (127.0.0.1)
 # - Non-interactive TLS generation (self-signed CA)
-# - Does NOT modify /etc/recursive-ir/env/recursive.env
-#   (dfir init --bootstrap-env should create it from recursive.env.sample)
+# - Bootstraps /etc/recursive-ir/env/recursive.env via dfir init,
+#   then patches deployment-specific values such as OS_PASS and OSD_HOST_LAN
 # - Prints installed versions + service statuses + verification results at end
 # ------------------------------------------------------------------
 
@@ -783,6 +783,9 @@ sed -i \
   -e "s|^OS_PASS=.*|OS_PASS=\"${OPENSEARCH_INITIAL_ADMIN_PASSWORD}\"|" \
   -e "s|^OSD_HOST_LAN=.*|OSD_HOST_LAN=\"http://${LAN_IP}\"|" \
   "${RI_CONF_ENV}"
+
+systemctl daemon-reload
+systemctl restart dfir-worker 2>/dev/null || true
 
 # Re-apply config permissions after dfir init creates or rewrites files
 chown root:recursive /etc/recursive-ir/env /etc/recursive-ir/conf
