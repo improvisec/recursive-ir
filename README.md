@@ -162,6 +162,13 @@ To start using Recursive-IR for your investigations, access the following url (r
 
 ```http://OSD_HOST_LAN```
 
+## 3.4 To Uninstall
+
+To uninstall Recursive-IR, use the uninstall script. Review the details on the screen and hit 'q' and type 'y' when prompted.
+
+```./scripts/uninstall.sh```
+
+
 ---
 <a id="user-guide"></a>
 # 4. 📘 User Guide
