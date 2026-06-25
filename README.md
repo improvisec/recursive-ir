@@ -179,7 +179,7 @@ As of writing, Recursive-IR is actively being developed. For a list of all avail
 
 Using the admin username and password set during the installation, login to Recursive-IR for the first time by visiting ```http://OSD_HOST_LAN/app/login?nextUrl=/recursive-ir```. OSD_HOST_LAN pertains to the first local network interface's IP address detected during installation. It should also be set automatically in ```/etc/recursive-ir/recursive.env```.  
 
-When deploying Recursive-IR on an AWS EC2 instance, the public IP address associated with the instance should be used instead so Recursive-IR can be accessed remotely. Likewise, the same IP address should be set in recursive.env before uploading any artefacts so that all Add_Enrichment links will use the correct IP address (see Section 4.15). 
+When deploying Recursive-IR on an AWS EC2 instance, the public IP address associated with the instance should be used instead so Recursive-IR can be accessed remotely. Likewise, the same IP address should be set in recursive.env before uploading any artefacts so that all Add_Enrichment links will use the correct IP address (see Section 4.14). 
  
 <img src="assets/images/login.png" width="40%" />
 
