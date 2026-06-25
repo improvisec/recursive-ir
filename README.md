@@ -158,10 +158,6 @@ Your Recursive-IR deployment now includes:
 - Recursive-IR web user interface
 - nginx LAN gateway for controlled access
 
-To start using Recursive-IR for your investigations, access the following url (replace OSD_HOST_LAN with the correct IP address). OSD_HOST_LAN variable should also be set correctly in ```/etc/recursive-ir/recursive.env```.
-
-```http://OSD_HOST_LAN```
-
 ## 3.5 To Uninstall
 
 To uninstall Recursive-IR, use the uninstall script. Review the details on the screen and hit 'q' when done. Then type 'y' when prompted and hit enter. The 'recursive' user can be manually removed if no longer needed.
@@ -181,8 +177,10 @@ As of writing, Recursive-IR is actively being developed. For a list of all avail
 <a id="user-login"></a>
 ## 4.1 Logging in to Recursive-IR Web User Interface
 
-Using the admin username and password set during the installation, login to Recursive-IR for the first time by visiting ```http://OSD_HOST_LAN/app/login?nextUrl=/recursive-ir```. 
+Using the admin username and password set during the installation, login to Recursive-IR for the first time by visiting ```http://OSD_HOST_LAN/app/login?nextUrl=/recursive-ir```. OSD_HOST_LAN pertains to the first local network interface's IP address detected during installation. It should also be set automatically in ```/etc/recursive-ir/recursive.env```.  
 
+When deploying Recursive-IR on an AWS EC2 instance, the public IP address associated with the instance should be used instead so Recursive-IR can be accessed remotely. Likewise, the same IP address should be set in recursive.env before uploading any artefacts so that all Add_Enrichment links will use the correct IP address (see Section 4.15). 
+ 
 <img src="assets/images/login.png" width="40%" />
 
 Once logged in, the web interface will show a number of sections for configuring Recursive-IR and performing various actions. The left panel containing these sections can be expanded/collapsed by clicking the "hamburger" menu at the top of the left panel.
