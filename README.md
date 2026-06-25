@@ -164,7 +164,7 @@ To start using Recursive-IR for your investigations, access the following url (r
 
 ## 3.5 To Uninstall
 
-To uninstall Recursive-IR, use the uninstall script. Review the details on the screen and hit 'q' and type 'y' when prompted.
+To uninstall Recursive-IR, use the uninstall script. Review the details on the screen and hit 'q' when done. Then type 'y' when prompted and hit enter. The 'recursive' user can be manually removed if no longer needed.
 
 ```./scripts/uninstall.sh```
 
