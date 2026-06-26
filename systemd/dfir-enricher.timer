@@ -7,7 +7,7 @@
 Description=Run Recursive-IR enrich projection periodically (all cases)
 
 [Timer]
-OnBootSec=30s
+OnActiveSec=30s
 OnUnitActiveSec=5s
 Unit=dfir-enricher.service
 Persistent=true
