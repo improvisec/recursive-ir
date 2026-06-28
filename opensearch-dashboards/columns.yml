@@ -1,8 +1,6 @@
 global:
   default_columns:
     - source_type
-    - title
-    - description
     - host_ip
     - host_name
     - dlq.orig_index
@@ -11,46 +9,57 @@ global:
 
 types:
   evtxjson:
-    default_columns:
-      - Event.System.Computer
-      - Event.System.Channel
-      - "Event.System.Provider.#attributes.Name"
-      - Event.System.Provider
-      - Event.System.EventID
-  hayabusajson:
-    default_columns:
-      - Computer
-      - Level
-      - RuleTitle
-  mftjson:
-    default_columns:
-      - File_Name
-      - Parent_Dir
-      - Full_Path
-      - is_deleted
-      - is_dir
-      - entry_type
-  plasojson:
-    default_columns:
-      - parser
-  json-arrayjson:
-    default_columns:
+    # Columns listed here become the initial set of columns in Discover
+    # for evtxjson-*.
+    default_columns: []
+
   dissect-evtxjson:
-    default_columns:
-  nginxjson:
-    default_columns:
-      - request_method
-      - request_path
-      - source.ip
-      - source.geo.country_name
-  cloudtrailjson:
-    default_columns:
-      - eventName
-      - userIdentity.accessKeyId
-      - resources.ARN
+    # Columns listed here become the initial set of columns in Discover
+    # for dissect-evtxjson-*.
+    default_columns: []
+
+  hayabusajson:
+    # Columns listed here become the initial set of columns in Discover
+    # for hayabusajson-*.
+    default_columns: []
+
+  mftjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for mftjson-*.
+    default_columns: []
+
+  plasojson:
+    # Columns listed here become the initial set of columns in Discover
+    # for plasojson-*.
+    default_columns: []
+
+  json-arrayjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for json-arrayjson-*.
+    default_columns: []
+
   json-passthroughjson:
-    default_columns:
+    # Columns listed here become the initial set of columns in Discover
+    # for json-passthroughjson-*.
+    default_columns: []
+
+  nginxjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for nginxjson-*.
+    default_columns: []
+
+  cloudtrailjson:
+    # Columns listed here become the initial set of columns in Discover
+    # for cloudtrailjson-*.
+    default_columns: []
+
   csvjson:
-    default_columns:
+    # Columns listed here become the initial set of columns in Discover
+    # for csvjson-*.
+    default_columns: []
+
   csv-headerlessjson:
-    default_columns:
+    # Columns listed here become the initial set of columns in Discover
+    # for csv-headerlessjson-*.
+    default_columns: []
+

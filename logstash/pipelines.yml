@@ -21,27 +21,23 @@
   path.config: /etc/recursive-ir/logstash/pipelines/999-output.conf
 - pipeline.id: evtxjson
   path.config: /etc/recursive-ir/logstash/pipelines/100-evtxjson.conf
-- pipeline.id: hayabusajson
-  path.config: /etc/recursive-ir/logstash/pipelines/101-hayabusajson.conf
-- pipeline.id: mftjson
-  path.config: /etc/recursive-ir/logstash/pipelines/102-mftjson.conf
-- pipeline.id: plasojson
-  path.config: /etc/recursive-ir/logstash/pipelines/103-plasojson.conf
 - pipeline.id: dissect-evtxjson
-  path.config: /etc/recursive-ir/logstash/pipelines/104-dissect-evtxjson.conf
+  path.config: /etc/recursive-ir/logstash/pipelines/101-dissect-evtxjson.conf
+- pipeline.id: hayabusajson
+  path.config: /etc/recursive-ir/logstash/pipelines/102-hayabusajson.conf
+- pipeline.id: mftjson
+  path.config: /etc/recursive-ir/logstash/pipelines/103-mftjson.conf
+- pipeline.id: plasojson
+  path.config: /etc/recursive-ir/logstash/pipelines/104-plasojson.conf
 - pipeline.id: json-arrayjson
   path.config: /etc/recursive-ir/logstash/pipelines/105-json-arrayjson.conf
+- pipeline.id: json-passthroughjson
+  path.config: /etc/recursive-ir/logstash/pipelines/106-json-passthroughjson.conf
 - pipeline.id: nginxjson
-  path.config: /etc/recursive-ir/logstash/pipelines/106-nginxjson.conf
+  path.config: /etc/recursive-ir/logstash/pipelines/107-nginxjson.conf
 - pipeline.id: cloudtrailjson
   path.config: /etc/recursive-ir/logstash/pipelines/108-cloudtrailjson.conf
-- pipeline.id: json-passthroughjson
-  path.config: /etc/recursive-ir/logstash/pipelines/109-json-passthroughjson.conf
 - pipeline.id: csvjson
-  path.config: /etc/recursive-ir/logstash/pipelines/110-csvjson.conf
+  path.config: /etc/recursive-ir/logstash/pipelines/109-csvjson.conf
 - pipeline.id: csv-headerlessjson
-  path.config: /etc/recursive-ir/logstash/pipelines/113-csv-headerlessjson.conf
-- pipeline.id: dissect-evtx-duplicatejson
-  path.config: /etc/recursive-ir/logstash/pipelines/107-dissect-evtx-duplicatejson.conf
-- pipeline.id: custom-parser-1json
-  path.config: /etc/recursive-ir/logstash/pipelines/111-custom-parser-1json.conf
+  path.config: /etc/recursive-ir/logstash/pipelines/110-csv-headerlessjson.conf
