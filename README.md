@@ -510,7 +510,7 @@ To resolve this, fields can be normalised via the Field Mappings page. Stringify
 
 <img src="assets/images/sample_stringify.png"/>
 
-Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts has to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
+Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts have to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
 
 ---
 <a id="resetting-recursive-ir"></a>
