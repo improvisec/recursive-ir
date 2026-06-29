@@ -1,4 +1,5 @@
 <img src="assets/images/recursive-ir-banner-light.png" alt="Recursive-IR" width="400">
+Author: [Mark Alvarez](https://www.linkedin.com/in/markjaysonalvarez)
 <a id="introduction"></a>
 Recursive-IR is a single-binary orchestration that transforms an OpenSearch stack into a fully capable and customisable DFIR log analytics platform. Incident responders and digital forensics investigators can examine events arranged in a "super timeline" enabling correlation between different source artefacts to better understand the threat actor's full chain of attack.
 
