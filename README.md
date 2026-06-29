@@ -1,7 +1,4 @@
 <img src="assets/images/recursive-ir-banner-light.png" alt="Recursive-IR" width="400">
-
-Author: <a href="https://www.linkedin.com/in/markjaysonalvarez" target="_blank">Mark Alvarez</a>
-
 <a id="introduction"></a>
 Recursive-IR is a single-binary orchestration that transforms an OpenSearch stack into a fully capable and customisable DFIR log analytics platform. Incident responders and digital forensics investigators can examine events arranged in a "super timeline" enabling correlation between different source artefacts to better understand the threat actor's full chain of attack.
 
@@ -510,7 +507,7 @@ To resolve this, fields can be normalised via the Field Mappings page. Stringify
 
 <img src="assets/images/sample_stringify.png"/>
 
-Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts have to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
+Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts has to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
 
 ---
 <a id="resetting-recursive-ir"></a>
