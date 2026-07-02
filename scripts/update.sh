@@ -86,9 +86,8 @@ fi
 
 if echo "$PULL_OUTPUT" | grep -Eiq "Already up[ -]to[ -]date"; then
     echo
-    echo "[update] Recursive-IR is already up to date."
-    echo "[update] Nothing else to do."
-    exit 0
+    echo "[update] Repository is already up to date."
+    echo "[update] Continuing to check Docker images and restart Recursive-IR services."
 fi
 
 if [[ -f "$ROOT/VERSION" ]]; then
