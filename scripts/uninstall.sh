@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
 # Recursive-IR Uninstall Script
-# Copyright (c) 2026 Mark Alvarez 
-#
+# Copyright (c) 2026 Mark Jayson Alvarez 
+# Licensed under the Recursive-IR License
+# --------------------------------------------------
 # Removes Recursive-IR, OpenSearch stack, services,
-# Docker Compose deployment, configuration, data, and installer-created users.
-#
+# Docker Compose deployment, configuration, and data
+# --------------------------------------------------
 
 set -u
 
