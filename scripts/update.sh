@@ -108,7 +108,7 @@ section "Restart Recursive-IR Docker web stack"
 
 (
     cd "$ROOT/web"
-    docker compose --env-file "$RI_CONF_ENV" up -d
+    docker compose --env-file "$RI_CONF_ENV" up -d --force-recreate
 )
 
 section "Reload systemd"
