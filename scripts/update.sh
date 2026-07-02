@@ -73,6 +73,11 @@ set -e
 
 echo "$PULL_OUTPUT"
 
+REPO_UPDATED=1
+if echo "$PULL_OUTPUT" | grep -Eiq "Already up[ -]to[ -]date"; then
+    REPO_UPDATED=0
+fi
+
 if [[ "$PULL_STATUS" -ne 0 ]]; then
     echo
     echo "[update] ERROR: Failed to update repository."
@@ -84,10 +89,13 @@ if [[ "$PULL_STATUS" -ne 0 ]]; then
     exit "$PULL_STATUS"
 fi
 
-if echo "$PULL_OUTPUT" | grep -Eiq "Already up[ -]to[ -]date"; then
+if [[ "$REPO_UPDATED" -eq 0 ]]; then
     echo
     echo "[update] Repository is already up to date."
     echo "[update] Continuing to check Docker images and restart Recursive-IR services."
+else
+    echo
+    echo "[update] Repository updated."
 fi
 
 if [[ -f "$ROOT/VERSION" ]]; then
@@ -136,9 +144,14 @@ docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' \
 echo
 echo "[update] Recursive-IR update complete."
 
+if [[ "$REPO_UPDATED" -eq 0 ]]; then
+    echo "[update] Repository: already up to date"
+else
+    echo "[update] Repository: updated"
+fi
+
 if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
-    echo "[update] Version: $NEW_VERSION"
-    echo "[update] Repository updated (no version change)"
+    echo "[update] Version: $NEW_VERSION (unchanged)"
 else
     echo "[update] Version: $OLD_VERSION -> $NEW_VERSION"
 fi
