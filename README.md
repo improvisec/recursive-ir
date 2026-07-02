@@ -591,7 +591,52 @@ Certain enrichments can be added in bulk such as tags, iocs, and collections by 
 <a id="geo-enriching"></a>
 ## 4.15 Adding Geo-location Information
 
-Recursive-IR comes pre-installed with geo-location databases in mmdb (Maxmind Database) format. These databases were created using the data from https://github.com/ipverse. To add the country or AS information, event logs should have either "source.ip" or "destination.ip" fields. For example, if the logs use "remote_addr" for the source IP address, the field can either be renamed or copied into the source.ip field through the Field Mappings page. For changes to take effect, the artefacts have to be reloaded or re-ingested through the Case Management page. Once re-ingested, events will have fields such as source.geo.country_name and source.asn.as_org. This is useful for quickly triaging malicious activities from suspicious locations such as M365 logins, requests hitting a web application, or successful vpn connections.
+Recursive-IR comes pre-installed with geo-location databases in mmdb (Maxmind Database) format. These databases were created using the data from https://github.com/ipverse. To add the country or AS information, event logs should have either "source.ip" or "destination.ip" fields. For example, if the logs use "remote_addr" for the source IP address, the field can either be renamed or copied into the source.ip field through the Field Mappings page. 
+
+For changes to take effect, the artefacts have to be reloaded or re-ingested through the Case Management page. Once re-ingested, events will have fields such as source.geo.country_name and source.asn.as_org. This is useful for quickly triaging malicious activities from suspicious locations such as M365 logins, requests hitting a web application, or successful vpn connections.
+
+
+```bash
+  # --- ASN enrichment (Recursive-ASN MMDB) ---
+  if [source][ip] and [@metadata][src_is_public_ip] {
+    geoip {
+      source                 => "[source][ip]"
+      target                 => "[source][asn]"
+      database               => "/etc/recursive-ir/mmdb/recursive-asn.mmdb"
+      default_database_type  => "ASN"
+      tag_on_failure         => []
+    }
+  }
+
+  if [destination][ip] and [@metadata][dst_is_public_ip] {
+    geoip {
+      source                 => "[destination][ip]"
+      target                 => "[destination][asn]"
+      database               => "/etc/recursive-ir/mmdb/recursive-asn.mmdb"
+      default_database_type  => "ASN"
+      tag_on_failure         => []
+    }
+  }
+
+  # --- Country enrichment (Recursive-Country MMDB) ---
+  if [source][ip] and [@metadata][src_is_public_ip] {
+    geoip {
+      source   => "[source][ip]"
+      target   => "[source][geo]"
+      database => "/etc/recursive-ir/mmdb/recursive-country.mmdb"
+      tag_on_failure => []
+    }
+  }
+
+  if [destination][ip] and [@metadata][dst_is_public_ip] {
+    geoip {
+      source   => "[destination][ip]"
+      target   => "[destination][geo]"
+      database => "/etc/recursive-ir/mmdb/recursive-country.mmdb"
+      tag_on_failure => []
+    }
+  }
+```
 
 ---
 <a id="pivoting-event"></a>
