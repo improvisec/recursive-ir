@@ -486,11 +486,7 @@ When mapped as a "text", OpenSearch breaks down a field into separate tokens tha
 
 In general, correct data types allow applications to store them efficiently and perform operations on them that would otherwise have not been possible had they been mapped to the wrong type. An example would be the MaxMind geolocation database format (mmdb). IP addresses or subnets are stored and accessed in a special way that enables really fast IP address lookups as opposed to say storing subnets as plain texts or strings.  
 
-Recursive-IR uses Elastic Common Schema to map known fields to the appropriate data types using a pre-defined field naming convention. The helper script below creates an OpenSearch index component template in ```/etc/recursive-ir/opensearch/templates/ecs-component.json``` corresponding to the fields in the ECS spreadsheet in ```/etc/recursive-ir/conf/ecs-fields.csv``` (retrieved from this url: https://raw.githubusercontent.com/elastic/ecs/refs/heads/main/generated/csv/fields.csv):
-
-```
-[repo_path]/scripts/gen_ecs_template.py
-```
+Recursive-IR uses Elastic Common Schema to map known fields to the appropriate data types using a pre-defined field naming convention. OpenSearch index component templates are created in ```/etc/recursive-ir/opensearch/templates/ecs-component.json``` corresponding to the fields in the ECS spreadsheet in ```/etc/recursive-ir/conf/ecs-fields.csv``` (retrieved from this url: https://raw.githubusercontent.com/elastic/ecs/refs/heads/main/generated/csv/fields.csv):
 
 ecs-component.json is "imported" (i.e., via composed_of) into each index template generated per source type so each one inherits the mappings from this template.
 
