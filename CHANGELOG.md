@@ -2,7 +2,7 @@
 
 ## 2026-07-02
 
-### v0.9.41 - v0.9.43
+### v0.9.41 - v0.9.44
 
 - Added `update.sh` for upgrading an existing Recursive-IR installation without performing a full reinstall.
 
