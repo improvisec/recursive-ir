@@ -4737,7 +4737,7 @@ async def timestamp_coverage(req: Request, body: TimestampCoveragePayload):
         }
     }
 
-    url = f"{OS_HOST.rstrip('/')}/all-json/_search"
+    url = f"{OS_HOST.rstrip('/')}/all-json/_search?ignore_unavailable=true&allow_no_indices=true" 
 
     try:
         r = requests.post(
@@ -4852,7 +4852,7 @@ async def timestamp_candidates_for_view(req: Request, body: TimestampCandidatesF
         ]
     }
 
-    url = f"{OS_HOST.rstrip('/')}/all-json/_search"
+    url = f"{OS_HOST.rstrip('/')}/all-json/_search?ignore_unavailable=true&allow_no_indices=true"    
 
     try:
         r = requests.post(
@@ -4958,7 +4958,7 @@ async def timestamp_fallback_views(req: Request):
         }
     }
 
-    url = f"{OS_HOST.rstrip('/')}/all-json/_search"
+    url = f"{OS_HOST.rstrip('/')}/all-json/_search?ignore_unavailable=true&allow_no_indices=true"    
 
     try:
         r = requests.post(
@@ -5069,7 +5069,7 @@ async def timestamp_fallback_samples(req: Request, body: TimestampFallbackSample
     if body.search_after:
         body_json["search_after"] = body.search_after
 
-    url = f"{OS_HOST.rstrip('/')}/all-json/_search"
+    url = f"{OS_HOST.rstrip('/')}/all-json/_search?ignore_unavailable=true&allow_no_indices=true"    
 
     try:
         r = requests.post(
