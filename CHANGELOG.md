@@ -2,6 +2,12 @@
 
 ## 2026-07-02
 
+### v0.9.46
+
+- Added default jvm.options file with 4gb default heap size for logstash 
+
+## 2026-07-02
+
 ### v0.9.45
 
 - Fixed index not found error when loading SettingsPage on fresh install.
