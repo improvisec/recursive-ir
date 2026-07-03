@@ -169,7 +169,7 @@ To uninstall Recursive-IR, use the uninstall script. Review the details on the s
 
 To update Recursive-IR, use the update script. The script will pull the latest repo and docker images. Note that for any configuration files that were added during the update, they can be safely deployed by re-initializing Recursive-IR (either by running ```dfir init``` on the terminal or in the UI (Maintenance Panel -> Initialize Recursive-IR). 
 
-```./scripts/update.sh```
+```sudo ./scripts/update.sh```
 
 ---
 <a id="user-guide"></a>
