@@ -13,18 +13,39 @@
       "dynamic": true,
       "date_detection": false,
       "properties": {
-        "@timestamp": { "type": "date" },
-        "@version":   { "type": "keyword" },
+        "@timestamp": {
+          "type": "date"
+        },
+        "@version": {
+          "type": "keyword"
+        },
 
-        "tags":       { "type": "keyword" },
+        "document_id": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
 
-        "case_id":     { "type": "keyword" },
-        "source_type": { "type": "keyword" },
+        "tags": {
+          "type": "keyword"
+        },
 
-        "host_ip":   { "type": "ip" },
-        "hostname":  { "type": "keyword" },
+        "case_id": {
+          "type": "keyword"
+        },
+        "source_type": {
+          "type": "keyword"
+        },
 
-        "size":      { "type": "long" },
+        "host_ip": {
+          "type": "ip"
+        },
+        "hostname": {
+          "type": "keyword"
+        },
+
+        "size": {
+          "type": "long"
+        },
 
         "log": {
           "properties": {
@@ -39,33 +60,53 @@
           }
         },
 
-        "error": {
-          "properties": {
-            "message": { "type": "text" },
-            "type":    { "type": "keyword" },
-            "reason":  { "type": "text" }
-          }
-        },
-
-        "event": {
-          "properties": {
-            "original": {
-              "type": "keyword",
-              "ignore_above": 1024,
-              "index": false
-            }
-          }
-        },
-
-        "pipeline": { "type": "keyword" },
-        "reason":   { "type": "text" },
-
         "dlq": {
           "properties": {
             "entry_time": {
               "type": "date",
               "format": "strict_date_optional_time_nanos"
             },
+
+            "orig_source_type": {
+              "type": "keyword"
+            },
+            "orig_index": {
+              "type": "keyword"
+            },
+            "orig_id": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "orig_timestamp": {
+              "type": "date"
+            },
+
+            "plugin_id": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "plugin_type": {
+              "type": "keyword"
+            },
+
+            "error_type": {
+              "type": "keyword"
+            },
+            "error_field": {
+              "type": "keyword"
+            },
+            "error_from_type": {
+              "type": "keyword"
+            },
+            "error_to_type": {
+              "type": "keyword"
+            },
+
+            "error_preview": {
+              "type": "keyword",
+              "ignore_above": 4096
+            },
+
             "error_message": {
               "type": "text",
               "fields": {
@@ -75,17 +116,8 @@
                 }
               }
             },
-            "error_type": {
-              "type": "keyword"
-            },
-            "plugin_id": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "plugin_type": {
-              "type": "keyword"
-            },
-            "reason": {
+
+            "error_cause": {
               "type": "text",
               "fields": {
                 "keyword": {
@@ -94,6 +126,7 @@
                 }
               }
             },
+
             "summary": {
               "type": "text",
               "fields": {
@@ -102,6 +135,11 @@
                   "ignore_above": 1024
                 }
               }
+            },
+
+            "reason": {
+              "type": "text",
+              "index": false
             }
           }
         }
@@ -116,8 +154,7 @@
     "project": "Recursive-IR",
     "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
     "license": "Recursive-IR License",
-    "desc": "Ingestion error events from Logstash Dead Letter Queue;"
+    "desc": "Ingestion error events from Logstash Dead Letter Queue."
   },
   "version": 1
 }
-
