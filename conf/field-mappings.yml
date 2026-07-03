@@ -83,15 +83,30 @@ evtxjson:
 # dissect-evtxjson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
 dissect-evtxjson:
-  # rename:
-  rename: {}
+  rename:
+    _source: dissect__source
+    _version: dissect__version
+    source: dissect_source
+    error: dissect_error
+    url: dissect_url
+    _recorddescriptor: dissect__recorddescriptor
+    _type: dissect__type
+    _data: dissect__data
+
   copy: {}
+
   set_if_present: {}
+
   drop: []
-  derive:
-    basename: []
-    parentdirs: []
-  stringify: []
+
+  derive: {}
+
+  stringify:
+    - dissect__source
+    - dissect__recorddescriptor
+    - dissect__type
+    - dissect__data
+
   store_only:
     max_bytes: 8192
     preview_bytes: 8192
