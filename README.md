@@ -497,7 +497,7 @@ ecs-component.json is "imported" (i.e., via composed_of) into each index templat
 
 OpenSearch supports dynamic mapping so it can automatically detect the most appropriate field type if not specified in a template. If a log file contains a field that isn't included in the ECS template that was created, its type is dynamically determined during ingestion. A problem arises when a log source has a field that has conflicting values. A tool for example can mix integers with strings such as "logon_type" having both "3" on some events and "3 - Network" on others. 
 
-Once OpenSearch already mapped that field to an integer, succeeding events containing alpha-numeric values will be rejected. These ingestion errors will be logged by Logstash into its "dead letter queue" in ```/var/lib/recursive-ir/logstash/dead_letter_queue/```. Events in this log file is ingested into Recursive-IR OpenSearch under "ingestion-error-*" index where then can be inspected and resolved. 
+Once OpenSearch already mapped that field to an integer, succeeding events containing alpha-numeric values will be rejected. These ingestion errors will be logged by Logstash into its "dead letter queue" in ```/var/lib/recursive-ir/logstash/dead_letter_queue/```. Events in this log file is ingested into Recursive-IR OpenSearch under "ingestion-error-*" index where they can be inspected and resolved. 
 
 In the Recursive-IR homepage, when there are ingestion errors, the Ingestion Health panel (shown below) will indicate how many events failed getting ingested. 
 
