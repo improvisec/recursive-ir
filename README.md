@@ -26,7 +26,7 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
     * [4.7 Creating Users](#new-user)
     * [4.8 Customizing Columns](#customizing-columns)
     * [4.9 Selecting @timestamp Fields](#timestamp-fields)
-    * [4.10 Mapping Fields and Resolving Conflicts](#mapping-fields)
+    * [4.10 Mapping Fields and Resolving Ingestion Issues](#mapping-fields)
     * [4.11 Resetting Recursive-IR](#resetting-recursive-ir)
     * [4.12 Reloading Case Artefacts](#reloading-artefacts)
     * [4.13 Re-syncing Recursive-IR](#resync-recursive-ir)
@@ -212,9 +212,9 @@ A number of steps are involved before forensics artefacts can be analysed using 
 2. Creation of cases and hosts, and uploading of raw artefacts.
 3. Parsing of uploaded forensics artefacts and ingestion into an observability platform (i.e., OpenSearch).
 
-A status card representing each step is shown in the main page which guides the user on what to do in sequential order. These cards are just clickable links to the section shortcuts on the left panel menu.
+A status card representing each step is shown in the main page which guides the user on what to do in sequential order. The status of each card is shown as either "Ready" or "Not Ready".
 
-In Step #2 for example, the application will detect if there are any parsers already configured and enabled (Step #1) prior to creating new cases and uploading new artefacts. If there was none, the card remains disabled. Likewise, in Step #3, the application will detect if there are any ingested events already present for exploration and analysis, otherwise the card remains disabled. Shortcuts on the left panel are still clickable anytime regardless of the cards' status.
+In Step #2 for example, the application will detect if there are any parsers already configured and enabled (Step #1) prior to creating new cases and uploading new artefacts. If there was none or neither the parser nor watcher service is running as indicated in the Ingestion Health panel, the status remains "Not Ready". Likewise, in Step #3, the application will detect if there are any ingested events already present for exploration and analysis, otherwise the card remains in a "Not Ready" state. Shortcuts on the left panel are still clickable anytime regardless of the cards' status.
 
 <img src="assets/images/quick_steps.png"/>
 
@@ -482,7 +482,7 @@ Clicking the banner will display the data views with event timestamps falling ba
 ---
 
 <a id="mapping-fields"></a>
-## 4.10 Mapping Fields and Resolving Conflicts
+## 4.10 Mapping Fields and Resolving Ingestion Issues
 
 In order to leverage OpenSearch's powerful search engine, events ingested should have fields mapped into their appropriate types. A string containing an IP address for example, when mapped to the "ip" data type, allows searching for IPs included in the same cidr subnet. Think of a scenario where you found an IP address indicator and you suspect that the threat actor uses other IPs in the same subnet.
 
@@ -495,21 +495,19 @@ Recursive-IR uses Elastic Common Schema to map known fields to the appropriate d
 
 ecs-component.json is "imported" (i.e., via composed_of) into each index template generated per source type so each one inherits the mappings from this template.
 
-OpenSearch supports dynamic mapping so it can automatically detect the most appropriate field type if not specified in the template. If a log file contains a field that isn't included in the ECS template that was created, its type is dynamically determined during ingestion. A problem arises when a log source has a field that has conflicting values. A tool for example can mix integers with strings such as "logon_type" having both "3" on some events and "3 - Network" on others. 
+OpenSearch supports dynamic mapping so it can automatically detect the most appropriate field type if not specified in a template. If a log file contains a field that isn't included in the ECS template that was created, its type is dynamically determined during ingestion. A problem arises when a log source has a field that has conflicting values. A tool for example can mix integers with strings such as "logon_type" having both "3" on some events and "3 - Network" on others. 
 
-Once OpenSearch already mapped that field to an integer, succeeding events containing alpha-numeric values will be rejected. These ingestion errors will be logged by Logstash into its "dead letter queue" in ```/var/lib/recursive-ir/logstash/dead_letter_queue/```. Events in this log file is ingested into Recursive-IR OpenSearch under "ingestion-error-*" index where then can be inspected and resolved. To see the list of all conflicting fields, turn off "Hide missing fields" under "Filter by type" panel,  and "Visualize" and "Inspect" the field dlq.error_field.keyword (each field has a corresponding .keyword sub field that can be used for aggregation.)
+Once OpenSearch already mapped that field to an integer, succeeding events containing alpha-numeric values will be rejected. These ingestion errors will be logged by Logstash into its "dead letter queue" in ```/var/lib/recursive-ir/logstash/dead_letter_queue/```. Events in this log file is ingested into Recursive-IR OpenSearch under "ingestion-error-*" index where then can be inspected and resolved. 
 
-<img src="assets/images/error_field.png"/>
-
-In the Recursive-IR homepage, when there are ingestion errors, clicking the Explore button will take you to the OpenSearch Dashboards Discover app where the default data view selected will be the "ingestion-error-" instead of "alljson-". The field that's causing the ingestion error can be inspected.
+In the Recursive-IR homepage, when there are ingestion errors, the Ingestion Health panel (shown below) will indicate how many events failed getting ingested. 
 
 <img src="assets/images/ingestion_error.png"/>
 
-To resolve this, fields can be normalised via the Field Mappings page. Stringifying a field for example ensures that values are mapped to type text when events get ingested. 
+To resolve them, offending fields from the problematic source types can be normalised either through the Ingestion Health panel (click on View Details), or the Field Mappings page within the Homepage. Stringifying a field for example ensures that values are mapped to type text when events get ingested. Renaming resolves fields that conflict with those already existing in the ```/etc/recursive-ir/opensearch/templates/ecs-component.json``` and already have types assigned or mapped.
 
 <img src="assets/images/sample_stringify.png"/>
 
-Once changes are saved, the indexed data along with the already stored dynamic mappings with conflicts has to be removed through the Maintenance panel and the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see the next section).
+Once changes are saved, the case artefacts need to be re-ingested by performing a case reload through the Case Management page (see section 4.12). In some cases, the indexed data along with the already stored dynamic mappings with conflicts have to be removed first by reseting indexed data and templates through the Maintenance panel (see the next section).
 
 ---
 <a id="resetting-recursive-ir"></a>
@@ -524,7 +522,7 @@ Recursive-IR offers a convenient way to purge already ingested data. This is use
 - ```Reset data views``` - Deletes OpenSearch Dashboards data views.
 - ```Reset case data``` - Deletes case folders including uploaded artefacts and case-related indexed data. Defaults to all cases unless specific case IDs are provided.
 
-For resolving mapping conflicts, 'Reset indexed data and templates" should suffice. Both "Reset everything" and "Reset indexed data" push the index templates, data views, and osd setttings again.  
+For resolving mapping conflicts, 'Reset indexed data and templates" should suffice. Both "Reset everything" and "Reset indexed data" push the default index templates, data views, and osd setttings again.  
 
 ---
 <a id="reloading-artefacts"></a>

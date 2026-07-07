@@ -529,6 +529,18 @@ sudo -u opensearch touch /var/log/opensearch/gc.log
 chown opensearch:opensearch /var/log/opensearch/gc.log
 chmod 0640 /var/log/opensearch/gc.log
 
+# Recursive-IR OpenSearch heap override.
+# /etc/opensearch/jvm.options. 
+mkdir -p /etc/opensearch/jvm.options.d
+
+cat > /etc/opensearch/jvm.options.d/recursive-ir.options <<'EOF'
+-Xms4g
+-Xmx4g
+EOF
+
+chown root:opensearch /etc/opensearch/jvm.options.d/recursive-ir.options
+chmod 0640 /etc/opensearch/jvm.options.d/recursive-ir.options
+
 systemctl restart opensearch
 
 # =========================

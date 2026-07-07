@@ -9,6 +9,7 @@ from typing import List, Optional, Literal, Dict, Any, Tuple
 from pydantic import BaseModel, Field, RootModel, root_validator, ConfigDict
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
+from urllib.parse import quote
 import ctypes.util
 import aiosqlite
 import subprocess
@@ -46,6 +47,7 @@ WEB_DATA_ROOT = os.getenv("WEB_DATA_ROOT", "/data")
 JOBS_ROOT = os.getenv("JOBS_ROOT", os.path.join(WEB_DATA_ROOT, "jobs"))
 UPLOADS_ROOT = os.getenv("UPLOADS_ROOT", os.path.join(WEB_DATA_ROOT, "uploads"))
 DB_PATH = os.getenv("JOBS_DB", os.path.join(JOBS_ROOT, "jobs.db"))
+DB_TIMEOUT_SECONDS = float(os.getenv("JOBS_DB_TIMEOUT_SECONDS", "30"))
 
 # OpenSearch for server-side truth (case_id derivation)
 # Expect these to be provided to the container environment.
@@ -54,6 +56,13 @@ OS_USER = os.getenv("OS_USER")
 OS_PASS = os.getenv("OS_PASS")
 OS_CACERT = os.getenv("OS_CACERT")
 OS_INSECURE = (os.getenv("OS_INSECURE") or "").strip().lower() in ("1", "true", "yes", "y")
+
+INGESTION_SERVICE_NAMES = [
+    "logstash",
+    "filebeat",
+    "dfir-parser.timer",
+    "dfir-watcher",
+]
 
 def _os_verify_param():
     if OS_INSECURE:
@@ -249,6 +258,11 @@ class ParserUpdateSubmit(BaseModel):
     timezone: Optional[str] = None
     inherit_type: Optional[bool] = None
     fingerprint_fields: Optional[List[str]] = None
+
+class IngestionServiceActionRequest(BaseModel):
+    service: Literal["logstash", "filebeat", "dfir-parser.timer", "dfir-watcher", "all"]
+    action: Literal["start", "stop", "restart"]
+
 
 def _parser_scalar_list_to_csv(v: Any) -> str:
     if v is None:
@@ -694,6 +708,10 @@ def zstd_compress(data: bytes, level: int = 3) -> bytes:
 # OSD authinfo helpers
 # -------------------------
 
+AUTHINFO_CACHE_TTL_SECONDS = int(os.getenv("AUTHINFO_CACHE_TTL_SECONDS", "60"))
+AUTHINFO_CACHE_STALE_SECONDS = int(os.getenv("AUTHINFO_CACHE_STALE_SECONDS", "900"))
+AUTHINFO_CACHE: Dict[str, Dict[str, Any]] = {}
+
 def _fetch_authinfo(cookie: str):
     """
     Return dict:
@@ -701,10 +719,19 @@ def _fetch_authinfo(cookie: str):
     or
       {"ok": False, "error": "...", "last": {...}}
     """
+    
+    cache_key = hashlib.sha256((cookie or "").encode("utf-8")).hexdigest()
+    cached = AUTHINFO_CACHE.get(cache_key)
+
+    if cached and (time.time() - float(cached.get("ts") or 0)) <= AUTHINFO_CACHE_TTL_SECONDS:
+        return cached.get("auth") or {"ok": False, "error": "invalid auth cache entry"}
+
     candidates = [
         f"{OSD_HOST}/api/v1/auth/authinfo",
         f"{OSD_HOST}/_dashboards/api/v1/auth/authinfo",
     ]
+
+    print("[AUTH] forwarded cookie names:", re.findall(r"(?:^|;\s*)([^=;]+)=", cookie or ""))
 
     last = None
     for url in candidates:
@@ -713,13 +740,29 @@ def _fetch_authinfo(cookie: str):
             last = {"url": url, "status": r.status_code, "text_preview": r.text[:200]}
             if r.status_code == 200:
                 try:
-                    return {"ok": True, "url": url, "json": r.json()}
+                    auth = {"ok": True, "url": url, "json": r.json()}
+                    AUTHINFO_CACHE[cache_key] = {
+                        "ts": time.time(),
+                        "auth": auth,
+                    }
+                    return auth
                 except Exception:
-                    return {"ok": True, "url": url, "text": r.text}
+                    return {
+                        "ok": False,
+                        "error": "authinfo response was not json",
+                        "last": last,
+                    }
         except Exception as e:
             last = {"url": url, "error": str(e)}
 
+
+
+    if cached and (time.time() - float(cached.get("ts") or 0)) <= AUTHINFO_CACHE_STALE_SECONDS:
+        print("[AUTH] osd authinfo failed; using stale cached authinfo")
+        return cached.get("auth") or {"ok": False, "error": "invalid stale auth cache entry"}
+
     return {"ok": False, "error": "authinfo not reachable/authorized", "last": last}
+
 
 def _require_cookie(req: Request):
     cookie = req.headers.get("cookie")
@@ -730,10 +773,12 @@ def _require_cookie(req: Request):
 def _require_auth(req: Request) -> Tuple[Optional[str], Optional[str], Optional[JSONResponse]]:
     cookie, err = _require_cookie(req)
     if err:
+        print(f"[AUTH] cookie failed: {err}")
         return None, None, JSONResponse(status_code=401, content=err)
 
     auth = _fetch_authinfo(cookie)
     if not auth.get("ok"):
+        print(f"[AUTH] osd authinfo failed: {auth}")
         return None, None, JSONResponse(status_code=401, content=auth)
 
     user_name = (auth.get("json") or {}).get("user_name") or "unknown"
@@ -760,6 +805,10 @@ def _require_admin_auth(req: Request) -> Tuple[Optional[str], Optional[str], Opt
         return None, None, resp
 
     auth = _fetch_authinfo(cookie)
+    if not auth.get("ok"):
+        print(f"[AUTH] admin role authinfo failed: {auth}")
+        return None, None, JSONResponse(status_code=401, content=auth)
+
     auth_json = auth.get("json") or {}
     backend_roles = _auth_backend_roles(auth_json)
 
@@ -3915,7 +3964,8 @@ async def cases_list_submit(req: Request):
     action = "case_list"
     payload_json = json.dumps({}, separators=(",", ":"))
 
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
         cur = await db.execute(
             """
             INSERT INTO jobs (created_at, created_by, status, action, payload_json)
@@ -4555,7 +4605,8 @@ async def osd_list_columns_submit(req: Request):
         separators=(",", ":"),
     )
 
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
         cur = await db.execute(
             """
             INSERT INTO jobs (created_at, created_by, status, action, payload_json)
@@ -6161,9 +6212,626 @@ async def api_upload_session_complete_chunked_item(
     }
 
 
+def _flatten_template_fields(properties, prefix="", out=None):
+    if out is None:
+        out = {}
+
+    if not isinstance(properties, dict):
+        return out
+
+    for name, spec in properties.items():
+        if not isinstance(spec, dict):
+            continue
+
+        path = f"{prefix}.{name}" if prefix else str(name)
+        field_type = spec.get("type") or ("object" if isinstance(spec.get("properties"), dict) else "unknown")
+        out[path] = field_type
+
+        if isinstance(spec.get("properties"), dict):
+            _flatten_template_fields(spec.get("properties"), path, out)
+
+    return out
+
+
+def _load_component_template_fields(template_name):
+    url = f"{OS_HOST.rstrip('/')}/_component_template/{template_name}"
+
+    r = requests.get(
+        url,
+        auth=(OS_USER, OS_PASS),
+        timeout=30,
+        verify=_os_verify_param(),
+    )
+
+    if r.status_code != 200:
+        return {}
+
+    try:
+        data = r.json() or {}
+    except Exception:
+        return {}
+
+    templates = data.get("component_templates") or []
+    if not templates:
+        return {}
+
+    component = ((templates[0].get("component_template") or {}).get("template") or {})
+    mappings = component.get("mappings") or {}
+    properties = mappings.get("properties") or {}
+
+    return _flatten_template_fields(properties)
+
+def _extract_dlq_reason_field_preview(reason, field):
+    if not isinstance(reason, str) or not field:
+        return None
+
+    marker = f'"{field}" =>'
+    pos = reason.find(marker)
+    if pos < 0:
+        return None
+
+    i = pos + len(marker)
+    n = len(reason)
+
+    while i < n and reason[i].isspace():
+        i += 1
+
+    if i >= n:
+        return None
+
+    start = i
+
+    if reason[i] in "[{":
+        opener = reason[i]
+        closer = "]" if opener == "[" else "}"
+        depth = 0
+        in_string = False
+        escaped = False
+
+        while i < n:
+            ch = reason[i]
+
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_string = False
+            else:
+                if ch == '"':
+                    in_string = True
+                elif ch == opener:
+                    depth += 1
+                elif ch == closer:
+                    depth -= 1
+                    if depth == 0:
+                        i += 1
+                        break
+
+            i += 1
+
+        return reason[start:i].strip()[:4096]
+
+    if reason[i] == '"':
+        i += 1
+        escaped = False
+
+        while i < n:
+            ch = reason[i]
+
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                i += 1
+                break
+
+            i += 1
+
+        return reason[start:i].strip()[:4096]
+
+    while i < n:
+        if reason.startswith(", \"", i) or reason.startswith("}], response:", i):
+            break
+        i += 1
+
+    value = reason[start:i].strip()
+    return value[:4096] if value else None
+
+@api_v1.get("/field-mappings/ingestion-errors")
+async def field_mappings_ingestion_errors(req: Request):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    ecs_template_fields = _load_component_template_fields("ecs-component")
+
+    body_json = {
+        "size": 0,
+        "track_total_hits": False,
+        "query": {
+            "bool": {
+                "filter": [
+                    {"exists": {"field": "dlq.error_field"}}
+                ]
+            }
+        },
+        "aggs": {
+            "by_source_and_field": {
+                "composite": {
+                    "size": 100,
+                    "sources": [
+                        {
+                            "orig_source_type": {
+                                "terms": {
+                                    "field": "dlq.orig_source_type",
+                                    "missing_bucket": True
+                                }
+                            }
+                        },
+                        {
+                            "error_field": {
+                                "terms": {
+                                    "field": "dlq.error_field",
+                                    "missing_bucket": False
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    failed_url = f"{OS_HOST.rstrip('/')}/ingestion-error-*/_search?ignore_unavailable=true&allow_no_indices=true"
+    successful_url = f"{OS_HOST.rstrip('/')}/all-json/_count?ignore_unavailable=true&allow_no_indices=true"
+    failed_count_url = f"{OS_HOST.rstrip('/')}/ingestion-error-*/_count?ignore_unavailable=true&allow_no_indices=true"
+
+
+    try:
+        r = requests.post(
+            failed_url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(body_json, separators=(",", ":")),
+            timeout=30,
+            verify=_os_verify_param(),
+        )
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"opensearch request failed: {e}"}, status_code=500)
+
+    if r.status_code != 200:
+        try:
+            err = r.json()
+        except Exception:
+            err = r.text
+
+        return JSONResponse(
+            {
+                "ok": False,
+                "status": r.status_code,
+                "error": err,
+            },
+            status_code=500,
+        )
+
+    successful_body_json = {
+        "query": {
+            "bool": {
+                "must_not": [
+                    {
+                        "wildcard": {
+                            "_index": "ingestion-error-*"
+                        }
+                    },
+                    {
+                        "wildcard": {
+                            "_index": "*-manifest-*"
+                        }
+                    },
+                    {
+                        "term": {
+                            "source_type": "ingestion-error"
+                        }
+                    },
+                    {
+                        "term": {
+                            "_dfir_dummy": True
+                        }
+                    },
+
+                ]
+            }
+        }
+    }
+
+    try:
+        sr = requests.post(
+            successful_url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(successful_body_json, separators=(",", ":")),
+            timeout=30,
+            verify=_os_verify_param(),
+        )
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"opensearch count request failed: {e}"}, status_code=500)
+
+    successful_events = 0
+    if sr.status_code == 200:
+        try:
+            successful_events = int((sr.json() or {}).get("count") or 0)
+        except Exception:
+            successful_events = 0
+
+    try:
+        j = r.json()
+
+        if "error" in j:
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "error": j["error"],
+                },
+                status_code=500,
+            )
+
+        total = 0
+        try:
+            cr = requests.post(
+                failed_count_url,
+                auth=(OS_USER, OS_PASS),
+                headers={"Content-Type": "application/json"},
+                data=json.dumps(
+                    {
+                        "query": {
+                            "bool": {
+                                "filter": [
+                                    {"exists": {"field": "dlq.error_field"}}
+                                ]
+                            }
+                        }
+                    },
+                    separators=(",", ":"),
+                ),
+                timeout=15,
+                verify=_os_verify_param(),
+            )
+            if cr.status_code == 200:
+                total = int((cr.json() or {}).get("count") or 0)
+        except Exception:
+            total = 0
+
+        buckets = ((((j.get("aggregations") or {}).get("by_source_and_field") or {}).get("buckets")) or [])
+        rows = []
+
+        for bucket in buckets:
+            key = bucket.get("key") or {}
+            field = str(key.get("error_field") or "")
+            source_type = str(key.get("orig_source_type") or "unknown")
+
+            if not field:
+                continue
+
+            template_owned = field in ecs_template_fields
+            template_type = ecs_template_fields.get(field)
+
+            rows.append({
+                "error_field": field,
+                "count": int(bucket.get("doc_count") or 0),
+                "error_type": "",
+                "orig_source_type": source_type,
+                "affected_indexes": 0,
+                "template_owned": template_owned,
+                "template_type": template_type,
+                "recovery_hint": (
+                    "reload_artefacts"
+                    if template_owned
+                    else "reset_index_may_be_required"
+                ),
+            })
+
+        rows.sort(key=lambda row: int(row.get("count") or 0), reverse=True)
+
+        total_events = successful_events + total
+        failure_rate = (total / total_events * 100.0) if total_events > 0 else 0.0
+        success_rate = (successful_events / total_events * 100.0) if total_events > 0 else 100.0    
+    
+        return {
+            "ok": True,
+            "total": total,
+            "failed_events": total,
+            "successful_events": successful_events,
+            "total_events": total_events,
+            "failure_rate": failure_rate,
+            "success_rate": success_rate,
+            "rows": rows,
+        }
+
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
+
+@api_v1.get("/field-mappings/ingestion-errors/details")
+async def field_mappings_ingestion_error_details(req: Request):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    field = (req.query_params.get("field") or "").strip()
+
+    if not field:
+        return JSONResponse(
+            {"ok": False, "error": "field is required"},
+            status_code=400,
+        )
+
+    body_json = {
+        "size": 1,
+        "track_total_hits": False,
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "term": {
+                            "dlq.error_field": field
+                        }
+                    },
+                    {
+                        "term": {
+                            "dlq.error_field.keyword": field
+                        }
+                    },
+                    {
+                        "match_phrase": {
+                            "dlq.error_field": field
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
+            }
+        },
+        "sort": [
+            {
+                "@timestamp": {
+                    "order": "desc",
+                    "unmapped_type": "date"
+                }
+            }
+        ]
+    }
+
+    url = f"{OS_HOST.rstrip('/')}/ingestion-error-*/_search?ignore_unavailable=true&allow_no_indices=true"
+
+    try:
+        r = requests.post(
+            url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(body_json, separators=(",", ":")),
+            timeout=30,
+            verify=_os_verify_param(),
+        )
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"opensearch request failed: {e}"}, status_code=500)
+
+    if r.status_code != 200:
+        return JSONResponse(
+            {"ok": False, "error": f"opensearch error {r.status_code}: {r.text[:500]}"},
+            status_code=500,
+        )
+
+    try:
+        j = r.json() or {}
+    except Exception:
+        return JSONResponse({"ok": False, "error": "invalid opensearch response"}, status_code=500)
+
+    hits = (((j.get("hits") or {}).get("hits")) or [])
+    if not hits:
+        return JSONResponse({"ok": False, "error": "ingestion error detail not found"}, status_code=404)
+
+    hit = hits[0]
+    src = hit.get("_source") or {}
+    dlq = src.get("dlq") or {}
+
+    error_preview = dlq.get("error_preview")
+    if not error_preview:
+        error_preview = _extract_dlq_reason_field_preview(
+            dlq.get("reason"),
+            dlq.get("error_field"),
+        )
+    if not error_preview:
+        error_preview = dlq.get("error_cause")
+    if not error_preview:
+        error_preview = dlq.get("error_message")
+    if not error_preview:
+        error_preview = dlq.get("summary")
+
+    return {
+        "ok": True,
+        "detail": {
+            "index": hit.get("_index"),
+            "id": hit.get("_id"),
+            "timestamp": src.get("@timestamp"),
+            "case_id": src.get("case_id"),
+            "host_ip": src.get("host_ip"),
+            "document_id": src.get("document_id"),
+            "log_file_path": (((src.get("log") or {}).get("file") or {}).get("path")),
+            "orig_source_type": dlq.get("orig_source_type"),
+            "orig_index": dlq.get("orig_index"),
+            "orig_id": dlq.get("orig_id"),
+            "orig_timestamp": dlq.get("orig_timestamp"),
+            "error_type": dlq.get("error_type"),
+            "error_field": dlq.get("error_field"),
+            "error_message": dlq.get("error_message"),
+            "error_cause": dlq.get("error_cause"),
+            "error_preview": error_preview,
+            "error_from_type": dlq.get("error_from_type"),
+            "error_to_type": dlq.get("error_to_type"),
+            "summary": dlq.get("summary"),
+        },
+    }
+
+@api_v1.get("/field-mappings/ingestion-errors/example")
+async def field_mappings_ingestion_error_example(req: Request):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    index = (req.query_params.get("index") or "").strip()
+    doc_id = (req.query_params.get("id") or "").strip()
+
+    if not index or not doc_id:
+        return JSONResponse(
+            {"ok": False, "error": "index and id are required"},
+            status_code=400,
+        )
+
+    if not index.startswith("ingestion-error-"):
+        return JSONResponse(
+            {"ok": False, "error": "index must be an ingestion-error-* index"},
+            status_code=400,
+        )
+
+    url = f"{OS_HOST.rstrip('/')}/{quote(index, safe='')}/_doc/{quote(doc_id, safe='')}"
+
+    try:
+        r = requests.get(
+            url,
+            auth=(OS_USER, OS_PASS),
+            timeout=30,
+            verify=_os_verify_param(),
+        )
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"opensearch request failed: {e}"}, status_code=500)
+
+    if r.status_code == 404:
+        return JSONResponse({"ok": False, "error": "example document not found"}, status_code=404)
+
+    if r.status_code != 200:
+        return JSONResponse(
+            {"ok": False, "error": f"opensearch error {r.status_code}: {r.text[:500]}"},
+            status_code=500,
+        )
+
+    try:
+        hit = r.json() or {}
+    except Exception:
+        return JSONResponse({"ok": False, "error": "invalid opensearch response"}, status_code=500)
+
+    src = hit.get("_source") or {}
+    dlq = src.get("dlq") or {}
+
+    error_preview = dlq.get("error_preview")
+    if not error_preview:
+        error_preview = _extract_dlq_reason_field_preview(
+            dlq.get("reason"),
+            dlq.get("error_field"),
+        )
+
+    return {
+        "ok": True,
+        "example": {
+            "index": hit.get("_index"),
+            "id": hit.get("_id"),
+            "timestamp": src.get("@timestamp"),
+            "case_id": src.get("case_id"),
+            "host_ip": src.get("host_ip"),
+            "document_id": src.get("document_id"),
+            "log_file_path": (((src.get("log") or {}).get("file") or {}).get("path")),
+            "orig_source_type": dlq.get("orig_source_type"),
+            "orig_index": dlq.get("orig_index"),
+            "orig_id": dlq.get("orig_id"),
+            "orig_timestamp": dlq.get("orig_timestamp"),
+            "error_type": dlq.get("error_type"),
+            "error_field": dlq.get("error_field"),
+            "error_message": dlq.get("error_message"),
+            "error_cause": dlq.get("error_cause"),
+            "error_preview": error_preview,
+            "error_from_type": dlq.get("error_from_type"),
+            "error_to_type": dlq.get("error_to_type"),
+            "summary": dlq.get("summary"),
+        },
+    }
+
+@api_v1.post("/ingestion-services/status")
+async def ingestion_services_status(req: Request):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "services": INGESTION_SERVICE_NAMES,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, 'queued', 'ingestion_services_status', ?)
+            """,
+            (created_at, user, payload_json),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/ingestion-services/action")
+async def ingestion_services_action(req: Request, body: IngestionServiceActionRequest):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    services = INGESTION_SERVICE_NAMES if body.service == "all" else [body.service]
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "services": services,
+            "action": body.action,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, 'queued', 'ingestion_services_action', ?)
+            """,
+            (created_at, user, payload_json),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
 @api_v1.get("/field-mappings")
 async def field_mappings_list(req: Request):
-    _, user, resp = _require_auth(req)
+    _, user, resp = _require_admin_auth(req)
     if resp:
         return resp
 
@@ -6175,7 +6843,7 @@ async def field_mappings_list(req: Request):
 
 @api_v1.post("/field-mappings/save")
 async def field_mappings_save(req: Request):
-    _, user, resp = _require_auth(req)
+    _, user, resp = _require_admin_auth(req)
     if resp:
         return resp
 

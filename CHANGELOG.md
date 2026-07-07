@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-08
+
+### v0.10.1
+
+- Improved quick steps status cards in the homepage by adding ready/not ready state.
+- Added Ingestion Health panel in the homepage to indicate ingestion issues and interface to resolve them.
+- Added ingestion services status and start/stop controls within the Ingestion Heatlh panel.
+- Configured default 4gb heap to OpenSearch jvm.options to resolve crashes.
+- Fixed authentication failing issues when OSD randomly returns 401.
+
 ## 2026-07-02
 
 ### v0.9.47
