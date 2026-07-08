@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-09
+
+### v0.10.2
+
+- Added source type-scoped case artefacts reload for faster re-ingestion.
+
 ## 2026-07-08
 
 ### v0.10.1

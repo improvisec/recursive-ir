@@ -3580,6 +3580,7 @@ class CaseUpdateRequest(BaseModel):
 class CaseReloadRequest(BaseModel):
     case_id: str
     reparse_artefacts: bool = False
+    source_types: list[str] = Field(default_factory=list)
 
 class ResetCaseRequest(BaseModel):
     case_id: str
@@ -4055,6 +4056,17 @@ async def cases_reload_submit(req: Request, body: CaseReloadRequest):
     payload = {"case_id": body.case_id}
     if body.reparse_artefacts:
         payload["reparse_artefacts"] = True
+
+    source_types = sorted(
+        {
+            str(item or "").strip()
+            for item in body.source_types
+            if str(item or "").strip()
+        },
+        key=str.lower,
+    )
+    if source_types:
+        payload["source_types"] = source_types
 
     created_at = int(time.time())
     created_by = user
@@ -6839,6 +6851,28 @@ async def field_mappings_list(req: Request):
     return {
         "ok": True,
         "source_types": data["source_types"],
+    }
+
+@api_v1.get("/source-types")
+async def source_types_list(req: Request):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    data = _load_field_mappings_from_yaml()
+
+    source_types = sorted(
+        [
+            item["sourceType"]
+            for item in data["source_types"]
+            if item.get("sourceType")
+        ],
+        key=str.lower,
+    )
+
+    return {
+        "ok": True,
+        "source_types": source_types,
     }
 
 @api_v1.post("/field-mappings/save")

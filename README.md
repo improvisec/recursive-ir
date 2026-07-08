@@ -528,7 +528,7 @@ For resolving mapping conflicts, 'Reset indexed data and templates" should suffi
 <a id="reloading-artefacts"></a>
 ## 4.12 Reloading Case Artefacts
 
-As mentioned in the introduction, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name SrcIpAddress to source.ip to enrich the events with geolocation information, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Access the reload panel from within the Case Management page via the target case's reload button as shown below:
+As mentioned in the introduction, users have full control over the data being ingested. This includes reloading already ingested case artefacts. For example, if one wants to change the field name SrcIpAddress to source.ip to enrich the events with geolocation information, this can be done within the Fields Mappings page as shown previously. To apply the changes, the case artefacts must be reloaded. Users can select specific source types to reload within a case.  Access the reload panel from within the Case Management page via the target case's reload button as shown below:
 
 <img src="assets/images/case_reload.png"/>
 
