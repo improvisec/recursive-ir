@@ -2,6 +2,10 @@
 
 ## 2026-07-09
 
+### v0.10.3
+
+- Added System Health panel in the homepage to monitor ram and disk utilization.
+
 ### v0.10.2
 
 - Added source type-scoped case artefacts reload for faster re-ingestion.

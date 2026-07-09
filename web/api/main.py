@@ -14,6 +14,7 @@ import ctypes.util
 import aiosqlite
 import subprocess
 import requests
+import shutil
 import hashlib
 import secrets
 import ctypes
@@ -56,6 +57,8 @@ OS_USER = os.getenv("OS_USER")
 OS_PASS = os.getenv("OS_PASS")
 OS_CACERT = os.getenv("OS_CACERT")
 OS_INSECURE = (os.getenv("OS_INSECURE") or "").strip().lower() in ("1", "true", "yes", "y")
+LOGSTASH_STATS_URL = os.getenv("LOGSTASH_STATS_URL", "http://127.0.0.1:9600/_node/stats/jvm")
+SYSTEM_HEALTH_CASE_PATH = os.getenv("SYSTEM_HEALTH_CASE_PATH", "/var/log/recursive-ir")
 
 INGESTION_SERVICE_NAMES = [
     "logstash",
@@ -6780,6 +6783,150 @@ async def field_mappings_ingestion_error_example(req: Request):
             "summary": dlq.get("summary"),
         },
     }
+
+
+
+def _health_state(percent: Optional[float], warn_at: float, critical_at: float) -> str:
+    if percent is None:
+        return "unknown"
+    if percent >= critical_at:
+        return "critical"
+    if percent >= warn_at:
+        return "warning"
+    return "healthy"
+
+
+def _bytes_metric(label: str, used: Optional[int], maximum: Optional[int], warn_at: float, critical_at: float, detail: str = "") -> Dict[str, Any]:
+    percent = None
+    if used is not None and maximum and maximum > 0:
+        percent = round((float(used) / float(maximum)) * 100.0, 1)
+
+    return {
+        "label": label,
+        "used_bytes": used,
+        "max_bytes": maximum,
+        "percent": percent,
+        "state": _health_state(percent, warn_at, critical_at),
+        "detail": detail,
+    }
+
+
+def _disk_metric(label: str, path: str) -> Dict[str, Any]:
+    checked_path = path if os.path.exists(path) else "/"
+    usage = shutil.disk_usage(checked_path)
+    metric = _bytes_metric(
+        label,
+        int(usage.used),
+        int(usage.total),
+        80.0,
+        90.0,
+        checked_path,
+    )
+    metric["path"] = checked_path
+    return metric
+
+
+def _overall_health(metrics: List[Dict[str, Any]]) -> str:
+    states = [str(metric.get("state") or "unknown") for metric in metrics]
+    if "critical" in states:
+        return "critical"
+    if "warning" in states:
+        return "warning"
+    if states and all(state == "healthy" for state in states):
+        return "healthy"
+    return "unknown"
+
+
+def _opensearch_heap_metric() -> Dict[str, Any]:
+    missing = _os_ready()
+    if missing:
+        return _bytes_metric("OpenSearch Heap", None, None, 75.0, 90.0, missing)
+
+    try:
+        r = requests.get(
+            f"{OS_HOST.rstrip('/')}/_nodes/stats/jvm",
+            auth=(OS_USER, OS_PASS),
+            timeout=8,
+            verify=_os_verify_param(),
+        )
+    except Exception as e:
+        return _bytes_metric("OpenSearch Heap", None, None, 75.0, 90.0, f"request failed: {e}")
+
+    if r.status_code != 200:
+        return _bytes_metric("OpenSearch Heap", None, None, 75.0, 90.0, f"HTTP {r.status_code}")
+
+    try:
+        data = r.json()
+    except Exception as e:
+        return _bytes_metric("OpenSearch Heap", None, None, 75.0, 90.0, f"invalid JSON: {e}")
+
+    used = 0
+    maximum = 0
+    for node in (data.get("nodes") or {}).values():
+        mem = ((node.get("jvm") or {}).get("mem") or {})
+        used += int(mem.get("heap_used_in_bytes") or 0)
+        maximum += int(mem.get("heap_max_in_bytes") or 0)
+
+    return _bytes_metric("OpenSearch Heap", used or None, maximum or None, 75.0, 90.0)
+
+
+def _logstash_heap_metric() -> Dict[str, Any]:
+    try:
+        r = requests.get(LOGSTASH_STATS_URL, timeout=5)
+    except Exception as e:
+        return _bytes_metric("Logstash Heap", None, None, 75.0, 90.0, f"request failed: {e}")
+
+    if r.status_code != 200:
+        return _bytes_metric("Logstash Heap", None, None, 75.0, 90.0, f"HTTP {r.status_code}")
+
+    try:
+        data = r.json()
+    except Exception as e:
+        return _bytes_metric("Logstash Heap", None, None, 75.0, 90.0, f"invalid JSON: {e}")
+
+    mem = ((data.get("jvm") or {}).get("mem") or {})
+    return _bytes_metric(
+        "Logstash Heap",
+        int(mem.get("heap_used_in_bytes") or 0) or None,
+        int(mem.get("heap_max_in_bytes") or 0) or None,
+        75.0,
+        90.0,
+    )
+
+
+@api_v1.post("/system-health/status")
+async def system_health_status(req: Request):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "metrics": [
+                "opensearch_heap",
+                "logstash_heap",
+                "root_disk",
+                "case_storage",
+            ],
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, 'queued', 'system_health_status', ?)
+            """,
+            (created_at, user, payload_json),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
 
 @api_v1.post("/ingestion-services/status")
 async def ingestion_services_status(req: Request):

@@ -11,7 +11,6 @@ pipeline.ordered: auto
 pipeline.workers: 8
 pipeline.batch.size: 1500
 pipeline.batch.delay: 25
-api.enabled: false
 queue.type: memory
 queue.max_bytes: 2gb
 config.reload.automatic: true
