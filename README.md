@@ -862,6 +862,12 @@ and routes them into:
 /var/log/recursive-ir/cases/<case_id>/enrichments/data.mdb
 ```
 
+- dfir-detector - Runs periodically to see if there are any Security Analytics findings that need to be projected into OpenSearch. Findings are enriched with details such as case_id and links to rule viewer and associated events before being written locally for ingestion. 
+
+```
+/var/log/recursive-ir/cases/<case_id>/security-analytics-findings/<log_type>/<detector_id>
+```
+
 - dfir-worker - Constaintly monitors the database for new jobs submitted via the API through the Web UI.
 
 ```
