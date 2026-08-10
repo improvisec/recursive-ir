@@ -37,10 +37,10 @@ types:
     id: 101
   hayabusa:
     enabled: false
-    patterns: ["*.evtx"]
+    patterns: ["winevt"]
     bin: /home/recursive/hayabusa/target/release/hayabusa
-    args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "-f", "{in}"]
-    route_mode: walk
+    args: ["json-timeline", "-c", "/home/recursive/hayabusa/rules/config/", "-r", "/home/recursive/hayabusa/rules/", "-w", "-Q", "-q", "-N", "-A", "-L", "-C", "-o", "{out}", "-d", "{in}"]
+    route_mode: bundle
     inherit_type: false
     expand_archives: top
     timezone: UTC

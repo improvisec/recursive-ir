@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 from urllib.parse import quote
 import ctypes.util
+import asyncio
 import aiosqlite
 import subprocess
 import requests
@@ -83,6 +84,7 @@ MAX_TAG_LEN = 128
 MAX_BULK_DOCS = 10_000
 MAX_COMMENT_LEN = 500
 MAX_IOC_LEN = 512
+TIMESTAMP_CANDIDATE_SAMPLE_SIZE = 8
 
 # Tag YAML sources (served to UI)
 TAGS_DIR = os.getenv("TAGS_DIR", "/etc/recursive-ir/conf/tags")
@@ -267,6 +269,191 @@ class IngestionServiceActionRequest(BaseModel):
     action: Literal["start", "stop", "restart"]
 
 
+class SecurityAnalyticsMappingReadinessRequest(BaseModel):
+    field_scope: Literal["dynamic", "all-mapped"] = "dynamic"
+
+
+class SecurityAnalyticsLogTypeRecommendRequest(BaseModel):
+    source_type: str = Field(..., min_length=1, max_length=128)
+    field_scope: Literal["dynamic", "all-mapped"] = "dynamic"
+
+    @root_validator(pre=True)
+    def _normalize_source_type(cls, values):
+        source_type = str(values.get("source_type") or "").strip()
+        if not source_type:
+            raise ValueError("source_type is required")
+        values["source_type"] = source_type
+        return values
+
+
+class SecurityAnalyticsSourceFieldsRequest(BaseModel):
+    source_type: str = Field(..., min_length=1, max_length=128)
+    include_template_fields: bool = True
+
+    @root_validator(pre=True)
+    def _normalize_source_type(cls, values):
+        source_type = str(values.get("source_type") or "").strip()
+        if not source_type:
+            raise ValueError("source_type is required")
+        values["source_type"] = source_type
+        return values
+
+
+class SecurityAnalyticsDetectorsListRequest(BaseModel):
+    size: int = Field(100, ge=1, le=1000)
+    from_: int = Field(0, ge=0, le=1000000, alias="from")
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class SecurityAnalyticsRulesListRequest(BaseModel):
+    log_type: str = Field(..., min_length=1, max_length=128)
+    size: int = Field(500, ge=1, le=500)
+    from_: int = Field(0, ge=0, le=1000000, alias="from")
+
+    class Config:
+        allow_population_by_field_name = True
+
+    @root_validator(pre=True)
+    def _normalize_log_type(cls, values):
+        log_type = str(values.get("log_type") or "").strip()
+        if not log_type:
+            raise ValueError("log_type is required")
+        values["log_type"] = log_type
+        return values
+
+
+class SecurityAnalyticsDetectorRescanRequest(BaseModel):
+    detector_id: str = Field(..., min_length=1, max_length=512)
+
+    @root_validator(pre=True)
+    def _normalize_detector_id(cls, values):
+        detector_id = str(values.get("detector_id") or "").strip()
+        if not detector_id:
+            raise ValueError("detector_id is required")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", detector_id):
+            raise ValueError("invalid detector_id")
+        values["detector_id"] = detector_id
+        return values
+
+
+class SecurityAnalyticsFieldCoverageRequest(BaseModel):
+    source_type: str = Field(..., min_length=1, max_length=128)
+    field: str = Field(..., min_length=1, max_length=1024)
+    include_samples: bool = False
+    sample_size: int = Field(default=1, ge=1, le=10)
+    search_after: Optional[List[Any]] = None
+
+    @root_validator(pre=True)
+    def _normalize_fields(cls, values):
+        source_type = str(values.get("source_type") or "").strip()
+        field = str(values.get("field") or "").strip()
+        if not source_type:
+            raise ValueError("source_type is required")
+        if not field:
+            raise ValueError("field is required")
+        values["source_type"] = source_type
+        values["field"] = field
+        return values
+
+
+class SecurityAnalyticsMappingCandidatesRequest(BaseModel):
+    source_type: str = Field(..., min_length=1, max_length=128)
+    category: str = Field(..., min_length=1, max_length=128)
+    field_scope: Literal["dynamic", "all-mapped"] = "dynamic"
+
+    @root_validator(pre=True)
+    def _normalize_fields(cls, values):
+        source_type = str(values.get("source_type") or "").strip()
+        category = str(values.get("category") or "").strip()
+
+        if not source_type:
+            raise ValueError("source_type is required")
+        if not category:
+            raise ValueError("category is required")
+
+        values["source_type"] = source_type
+        values["category"] = category
+        return values
+
+
+class SecurityAnalyticsDetectorCreateRequest(BaseModel):
+    source_type: str = Field(..., min_length=1, max_length=128)
+    log_type: str = Field(..., min_length=1, max_length=128)
+    name: str = Field(..., min_length=1, max_length=256)
+    description: str = Field(default="", max_length=2048)
+    interval: int = Field(default=1, ge=1, le=1000000)
+    unit: Literal["MINUTES", "HOURS", "DAYS"] = "MINUTES"
+    enabled: bool = False
+    rule_ids: List[str] = Field(..., min_items=1, max_items=5000)
+    mappings: Optional[Dict[str, Any]] = None
+
+    @root_validator(pre=True)
+    def _normalize_detector_create(cls, values):
+        for key in ("source_type", "log_type", "name"):
+            value = str(values.get(key) or "").strip()
+            if not value:
+                raise ValueError(f"{key} is required")
+            values[key] = value
+
+        values["description"] = str(values.get("description") or "").strip()
+        values["unit"] = str(values.get("unit") or "MINUTES").strip().upper()
+
+        rule_ids = values.get("rule_ids")
+        if not isinstance(rule_ids, list) or not rule_ids:
+            raise ValueError("rule_ids must be a nonempty array")
+
+        normalized_rule_ids = []
+        seen_rule_ids = set()
+        for raw_rule_id in rule_ids:
+            rule_id = str(raw_rule_id or "").strip()
+            if not rule_id:
+                raise ValueError("rule_ids cannot contain empty values")
+            if not re.fullmatch(r"[A-Za-z0-9_.:-]+", rule_id):
+                raise ValueError(f"invalid rule ID: {rule_id}")
+            if rule_id not in seen_rule_ids:
+                seen_rule_ids.add(rule_id)
+                normalized_rule_ids.append(rule_id)
+
+        values["rule_ids"] = normalized_rule_ids
+
+        mappings = values.get("mappings")
+        if mappings is not None and not isinstance(mappings, dict):
+            raise ValueError("mappings must be an object")
+
+        return values
+
+
+class SecurityAnalyticsDetectorEnabledRequest(BaseModel):
+    detector_id: str = Field(..., min_length=1, max_length=512)
+    enabled: bool
+
+    @root_validator(pre=True)
+    def _normalize_detector_id(cls, values):
+        detector_id = str(values.get("detector_id") or "").strip()
+        if not detector_id:
+            raise ValueError("detector_id is required")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", detector_id):
+            raise ValueError("invalid detector_id")
+        values["detector_id"] = detector_id
+        return values
+
+
+class SecurityAnalyticsDetectorDeleteRequest(BaseModel):
+    detector_id: str = Field(..., min_length=1, max_length=512)
+
+    @root_validator(pre=True)
+    def _normalize_detector_id(cls, values):
+        detector_id = str(values.get("detector_id") or "").strip()
+        if not detector_id:
+            raise ValueError("detector_id is required")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", detector_id):
+            raise ValueError("invalid detector_id")
+        values["detector_id"] = detector_id
+        return values
+
+
 def _parser_scalar_list_to_csv(v: Any) -> str:
     if v is None:
         return ""
@@ -373,6 +560,7 @@ def _field_mappings_default_config() -> Dict[str, Any]:
     return {
         "rename": {},
         "copy": {},
+        "coalesce": {},
         "set_if_present": {},
         "drop": [],
         "derive": {
@@ -508,6 +696,7 @@ def _normalize_field_mappings_config(value: Any) -> Dict[str, Any]:
     return {
         "rename": _normalize_string_map(value.get("rename")),
         "copy": _normalize_string_list_map(value.get("copy")),
+        "coalesce": _normalize_string_list_map(value.get("coalesce")),
         "set_if_present": _normalize_set_if_present(value.get("set_if_present")),
         "drop": _normalize_string_list(value.get("drop")),
         "derive": {
@@ -534,6 +723,7 @@ class FieldMappingsDerivePayload(BaseModel):
 class FieldMappingsConfigPayload(BaseModel):
     rename: Dict[str, str] = {}
     copy: Dict[str, List[str]] = {}
+    coalesce: Dict[str, List[str]] = {}
     set_if_present: Dict[str, Dict[str, List[str]]] = {}
     drop: List[str] = []
     derive: FieldMappingsDerivePayload = FieldMappingsDerivePayload()
@@ -734,8 +924,6 @@ def _fetch_authinfo(cookie: str):
         f"{OSD_HOST}/_dashboards/api/v1/auth/authinfo",
     ]
 
-    print("[AUTH] forwarded cookie names:", re.findall(r"(?:^|;\s*)([^=;]+)=", cookie or ""))
-
     last = None
     for url in candidates:
         try:
@@ -854,6 +1042,64 @@ def _os_ready() -> Optional[str]:
     if not OS_USER or not OS_PASS:
         return "OS_USER/OS_PASS are not set in API environment"
     return None
+
+
+def _security_analytics_has_installed_aliases(value: Any) -> bool:
+    if isinstance(value, dict):
+        if value.get("type") == "alias" and isinstance(value.get("path"), str):
+            return bool(value["path"].strip())
+        return any(
+            _security_analytics_has_installed_aliases(child)
+            for child in value.values()
+        )
+    if isinstance(value, list):
+        return any(
+            _security_analytics_has_installed_aliases(child)
+            for child in value
+        )
+    return False
+
+
+def _security_analytics_mappings_installed(source_type: str) -> Tuple[bool, Optional[str]]:
+    missing = _os_ready()
+    if missing:
+        return False, missing
+
+    source_type = (source_type or "").strip()
+    if not source_type or not re.fullmatch(r"[A-Za-z0-9._-]+", source_type):
+        return False, "invalid security analytics source type"
+
+    index_name = f"security-analytics-{source_type}"
+    url = (
+        f"{OS_HOST.rstrip('/')}"
+        f"/_plugins/_security_analytics/mappings"
+        f"?index_name={quote(index_name, safe='')}"
+    )
+
+    try:
+        response = requests.get(
+            url,
+            auth=(OS_USER, OS_PASS),
+            timeout=30,
+            verify=_os_verify_param(),
+        )
+    except Exception as exc:
+        return False, f"security analytics mappings lookup failed: {exc}"
+
+    if response.status_code == 404:
+        return False, None
+    if response.status_code != 200:
+        return False, (
+            f"security analytics mappings lookup returned "
+            f"HTTP {response.status_code}: {response.text[:300]}"
+        )
+
+    try:
+        payload = response.json()
+    except Exception:
+        return False, "security analytics mappings lookup returned non-JSON"
+
+    return _security_analytics_has_installed_aliases(payload), None
 
 def os_get_case_id(index: str, doc_id: str) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -1341,11 +1587,16 @@ async def _init_db():
 
 @api_v1.get("/debug/headers")
 async def debug_headers(req: Request):
-    c = req.headers.get("cookie", "")
+    cookie = req.headers.get("cookie", "")
+    cookie_names = re.findall(
+        r"(?:^|;\s*)([^=;]+)=",
+        cookie,
+    )
+
     return {
         "ok": True,
-        "has_cookie": bool(c),
-        "cookie_preview": (c[:160] + "...") if c else "",
+        "has_cookie": bool(cookie),
+        "cookie_names": cookie_names,
         "host": req.headers.get("host"),
         "x_real_ip": req.headers.get("x-real-ip"),
         "x_forwarded_for": req.headers.get("x-forwarded-for"),
@@ -2361,7 +2612,7 @@ class IocSearchSubmit(BaseModel):
         m = (values.get("mode") or "wildcard").strip().lower()
         s = (values.get("smart") or "auto").strip().lower()
 
-        # clamp to allowed values (don’t 422 clients who send junk; just default)
+        # clamp to allowed values (don't 422 clients who send junk; just default)
         if m not in ("wildcard", "smart"):
             m = "wildcard"
         if s not in ("auto", "match", "match_phrase"):
@@ -2796,7 +3047,7 @@ async def search_ioc(req: Request, body: IocSearchSubmit):
     if smart not in ("auto", "match", "match_phrase"):
         smart = "auto"
 
-    # ✅ pass mode to OpenSearch query builder
+    # pass mode to OpenSearch query builder
     j, err = os_search_ioc(
         derived_case_id,
         ioc_value,
@@ -3944,7 +4195,7 @@ def os_search_stats(
                 last_err = None
                 break
 
-            # buckets empty but total>0 → likely wrong field (e.g. ".keyword" on keyword field)
+            # buckets empty but total > 0 -> likely wrong field (e.g. ".keyword" on keyword field)
             last_err = None
             continue
 
@@ -4605,6 +4856,870 @@ async def hosts_list_artefacts_submit(req: Request, body: HostArtefactsListReque
     return {"ok": True, "job_id": job_id}
 
 
+@api_v1.post("/security-analytics/mapping-readiness")
+async def security_analytics_mapping_readiness_submit(
+    req: Request,
+    body: SecurityAnalyticsMappingReadinessRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "field_scope": body.field_scope,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_mapping_readiness",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/log-type-recommend")
+async def security_analytics_log_type_recommend_submit(
+    req: Request,
+    body: SecurityAnalyticsLogTypeRecommendRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "source_type": body.source_type,
+            "field_scope": body.field_scope,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_log_type_recommend",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/mapping-candidates")
+async def security_analytics_mapping_candidates_submit(
+    req: Request,
+    body: SecurityAnalyticsMappingCandidatesRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "source_type": body.source_type,
+            "category": body.category,
+            "field_scope": body.field_scope,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_mapping_candidates",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/source-fields-list")
+async def security_analytics_source_fields_list_submit(
+    req: Request,
+    body: SecurityAnalyticsSourceFieldsRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "source_type": body.source_type,
+            "include_template_fields": body.include_template_fields,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_source_fields_list",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/rules-list")
+async def security_analytics_rules_list_submit(
+    req: Request,
+    body: SecurityAnalyticsRulesListRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "log_type": body.log_type,
+            "size": body.size,
+            "from": body.from_,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_rules_list",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.get("/security-analytics/rules")
+async def security_analytics_rules_get(
+    req: Request,
+    log_type: str,
+    size: int = 500,
+    offset: int = 0,
+):
+    _, _, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    log_type = str(log_type or "").strip()
+    if not log_type or not re.fullmatch(r"[A-Za-z0-9_.\-*]+", log_type):
+        return JSONResponse(
+            {"ok": False, "error": "invalid log_type"},
+            status_code=400,
+        )
+
+    if size < 1 or size > 500:
+        return JSONResponse(
+            {"ok": False, "error": "size must be between 1 and 500"},
+            status_code=400,
+        )
+
+    if offset < 0:
+        return JSONResponse(
+            {"ok": False, "error": "offset must be >= 0"},
+            status_code=400,
+        )
+
+    url = (
+        f"{OS_HOST.rstrip('/')}"
+        "/_plugins/_security_analytics/rules/_search"
+        "?pre_packaged=true"
+    )
+    query = {
+        "from": offset,
+        "size": size,
+        "track_total_hits": True,
+        "query": {
+            "nested": {
+                "path": "rule",
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "match": {
+                                    "rule.category": log_type,
+                                }
+                            }
+                        ]
+                    }
+                },
+            }
+        },
+    }
+
+    try:
+        response = await asyncio.to_thread(
+            requests.post,
+            url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(query, separators=(",", ":")),
+            timeout=10,
+            verify=_os_verify_param(),
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": f"security analytics rule inventory lookup failed: {exc}",
+            },
+            status_code=500,
+        )
+
+    if response.status_code != 200:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": (
+                    f"security analytics rule inventory lookup returned "
+                    f"HTTP {response.status_code}: {response.text[:300]}"
+                ),
+            },
+            status_code=500,
+        )
+
+    try:
+        return response.json()
+    except Exception:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "security analytics rule inventory lookup returned non-JSON",
+            },
+            status_code=500,
+        )
+
+
+@api_v1.get("/security-analytics/rules/{rule_id}")
+async def security_analytics_rule_get(
+    req: Request,
+    rule_id: str,
+):
+    _, _, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    rule_id = str(rule_id or "").strip()
+    if not rule_id or not re.fullmatch(r"[A-Za-z0-9_.:-]+", rule_id):
+        return JSONResponse(
+            {"ok": False, "error": "invalid rule_id"},
+            status_code=400,
+        )
+
+    url = (
+        f"{OS_HOST.rstrip('/')}"
+        "/_plugins/_security_analytics/rules/_search"
+        "?pre_packaged=true"
+    )
+    query = {
+        "size": 1,
+        "track_total_hits": True,
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "ids": {
+                            "values": [rule_id],
+                        }
+                    },
+                    {
+                        "nested": {
+                            "path": "rule",
+                            "query": {
+                                "match_phrase": {
+                                    "rule.id": rule_id,
+                                }
+                            },
+                        }
+                    },
+                ],
+                "minimum_should_match": 1,
+            }
+        },
+    }
+
+    try:
+        response = await asyncio.to_thread(
+            requests.post,
+            url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(query, separators=(",", ":")),
+            timeout=10,
+            verify=_os_verify_param(),
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": f"security analytics rule lookup failed: {exc}",
+            },
+            status_code=500,
+        )
+
+    if response.status_code != 200:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": (
+                    f"security analytics rule lookup returned "
+                    f"HTTP {response.status_code}: {response.text[:300]}"
+                ),
+            },
+            status_code=500,
+        )
+
+    try:
+        payload = response.json()
+    except Exception:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "security analytics rule lookup returned non-JSON",
+            },
+            status_code=500,
+        )
+
+    hits = payload.get("hits", {}).get("hits", [])
+    if not isinstance(hits, list) or not hits:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "rule not found",
+                "rule_id": rule_id,
+            },
+            status_code=404,
+        )
+
+    return {
+        "ok": True,
+        "rule": hits[0],
+    }
+
+
+@api_v1.post("/security-analytics/detectors-list")
+async def security_analytics_detectors_list_submit(
+    req: Request,
+    body: SecurityAnalyticsDetectorsListRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {
+            "size": body.size,
+            "from": body.from_,
+        },
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_detectors_list",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/detector-create")
+async def security_analytics_detector_create_submit(
+    req: Request,
+    body: SecurityAnalyticsDetectorCreateRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    payload = {
+        "source_type": body.source_type,
+        "log_type": body.log_type,
+        "name": body.name,
+        "description": body.description,
+        "interval": body.interval,
+        "unit": body.unit,
+        "enabled": body.enabled,
+        "rule_ids": body.rule_ids,
+    }
+    if body.mappings is not None:
+        payload["mappings"] = body.mappings
+
+    created_at = int(time.time())
+    payload_json = json.dumps(payload, separators=(",", ":"))
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_detector_create",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {
+        "ok": True,
+        "job_id": job_id,
+    }
+
+
+@api_v1.post("/security-analytics/detector-enabled")
+async def security_analytics_detector_enabled(
+    req: Request,
+    body: SecurityAnalyticsDetectorEnabledRequest,
+):
+    _, _, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    detector_id = body.detector_id
+    detector_url = (
+        f"{OS_HOST.rstrip('/')}"
+        f"/_plugins/_security_analytics/detectors/{detector_id}"
+    )
+
+    try:
+        get_response = await asyncio.to_thread(
+            requests.get,
+            detector_url,
+            auth=(OS_USER, OS_PASS),
+            timeout=15,
+            verify=_os_verify_param(),
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": f"failed to read detector before enable/disable: {exc}",
+            },
+            status_code=500,
+        )
+
+    if get_response.status_code == 404:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "detector not found",
+                "detector_id": detector_id,
+            },
+            status_code=404,
+        )
+
+    if get_response.status_code != 200:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": (
+                    f"detector lookup returned HTTP "
+                    f"{get_response.status_code}: "
+                    f"{get_response.text[:500]}"
+                ),
+            },
+            status_code=500,
+        )
+
+    try:
+        current_payload = get_response.json()
+    except Exception:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "detector lookup returned non-JSON",
+            },
+            status_code=500,
+        )
+
+    detector = current_payload.get("detector")
+    if not isinstance(detector, dict):
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "detector lookup response did not contain detector definition",
+            },
+            status_code=500,
+        )
+
+    current_enabled = bool(detector.get("enabled"))
+    if current_enabled == body.enabled:
+        return {
+            "ok": True,
+            "detector_id": detector_id,
+            "enabled": body.enabled,
+            "changed": False,
+            "detector": detector,
+        }
+
+    # GET detector responses include server-managed timestamp fields such as
+    # last_update_time and enabled_time. Do not round-trip those fields into
+    # the update API: Security Analytics expects detector definition fields,
+    # while its stored timestamp representation is numeric.
+    updated_detector = {
+        key: detector[key]
+        for key in (
+            "type",
+            "detector_type",
+            "name",
+            "schedule",
+            "inputs",
+            "triggers",
+        )
+        if key in detector
+    }
+    updated_detector["enabled"] = body.enabled
+
+    try:
+        put_response = await asyncio.to_thread(
+            requests.put,
+            detector_url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(updated_detector, separators=(",", ":")),
+            timeout=30,
+            verify=_os_verify_param(),
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": f"failed to update detector enabled state: {exc}",
+            },
+            status_code=500,
+        )
+
+    if put_response.status_code < 200 or put_response.status_code >= 300:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": (
+                    f"detector enable/disable returned HTTP "
+                    f"{put_response.status_code}: "
+                    f"{put_response.text[:1000]}"
+                ),
+            },
+            status_code=500,
+        )
+
+    try:
+        update_payload = put_response.json()
+    except Exception:
+        update_payload = {}
+
+    return {
+        "ok": True,
+        "detector_id": detector_id,
+        "enabled": body.enabled,
+        "changed": True,
+        "response": update_payload,
+    }
+
+
+@api_v1.post("/security-analytics/detector-delete")
+async def security_analytics_detector_delete_submit(
+    req: Request,
+    body: SecurityAnalyticsDetectorDeleteRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {"detector_id": body.detector_id},
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_detector_delete",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/detector-rescan")
+async def security_analytics_detector_rescan_submit(
+    req: Request,
+    body: SecurityAnalyticsDetectorRescanRequest,
+):
+    _, user, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    created_at = int(time.time())
+    payload_json = json.dumps(
+        {"detector_id": body.detector_id},
+        separators=(",", ":"),
+    )
+
+    async with aiosqlite.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS) as db:
+        await db.execute("PRAGMA busy_timeout = 30000")
+        cur = await db.execute(
+            """
+            INSERT INTO jobs (created_at, created_by, status, action, payload_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                created_at,
+                user,
+                "queued",
+                "security_analytics_detector_rescan",
+                payload_json,
+            ),
+        )
+        await db.commit()
+        job_id = cur.lastrowid
+
+    return {"ok": True, "job_id": job_id}
+
+
+@api_v1.post("/security-analytics/field-coverage")
+async def security_analytics_field_coverage(
+    req: Request,
+    body: SecurityAnalyticsFieldCoverageRequest,
+):
+    _, _, resp = _require_admin_auth(req)
+    if resp:
+        return resp
+
+    missing = _os_ready()
+    if missing:
+        return JSONResponse({"ok": False, "error": missing}, status_code=500)
+
+    source_type = body.source_type.strip()
+    field = body.field.strip()
+
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", source_type):
+        return JSONResponse(
+            {"ok": False, "error": "invalid source_type"},
+            status_code=400,
+        )
+
+    target = f"{source_type}-*"
+    url = (
+        f"{OS_HOST.rstrip('/')}/{target}/_search"
+        "?ignore_unavailable=true&allow_no_indices=true"
+    )
+    include_samples = bool(body.include_samples)
+    sample_size = int(body.sample_size)
+
+    query = {
+        "size": sample_size if include_samples else 1,
+        "track_total_hits": True if include_samples else False,
+        "_source": include_samples,
+        "query": {
+            "exists": {
+                "field": field,
+            }
+        },
+    }
+
+    if include_samples:
+        query["sort"] = [
+            {
+                "@timestamp": {
+                    "order": "desc",
+                    "unmapped_type": "date",
+                }
+            },
+            {
+                "_id": {
+                    "order": "asc",
+                }
+            },
+        ]
+
+        if body.search_after:
+            query["search_after"] = body.search_after
+    else:
+        query["terminate_after"] = 1
+
+    try:
+        r = await asyncio.to_thread(
+            requests.post,
+            url,
+            auth=(OS_USER, OS_PASS),
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(query, separators=(",", ":")),
+            timeout=10,
+            verify=_os_verify_param(),
+        )
+    except Exception as e:
+        return JSONResponse(
+            {"ok": False, "error": f"opensearch request failed: {e}"},
+            status_code=500,
+        )
+
+    if r.status_code != 200:
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": f"opensearch error {r.status_code}: {r.text[:300]}",
+            },
+            status_code=500,
+        )
+
+    try:
+        result = r.json()
+    except Exception as e:
+        return JSONResponse(
+            {"ok": False, "error": f"invalid opensearch JSON: {e}"},
+            status_code=500,
+        )
+
+    hits = result.get("hits") or {}
+    hit_items = hits.get("hits") or []
+    exists = bool(hit_items)
+
+    total_raw = hits.get("total")
+    if isinstance(total_raw, dict):
+        document_count = int(total_raw.get("value") or 0)
+        count_relation = str(total_raw.get("relation") or "eq")
+    else:
+        document_count = int(total_raw or 0)
+        count_relation = "eq"
+
+    samples: List[Dict[str, Any]] = []
+    if include_samples:
+        for hit in hit_items:
+            if not isinstance(hit, dict):
+                continue
+            source = hit.get("_source")
+            if not isinstance(source, dict):
+                continue
+            samples.append(
+                {
+                    "index": str(hit.get("_index") or ""),
+                    "id": str(hit.get("_id") or ""),
+                    "sort": hit.get("sort"),
+                    "source": source,
+                }
+            )
+
+    return {
+        "ok": True,
+        "source_type": source_type,
+        "field": field,
+        "exists": exists,
+        "document_count": document_count,
+        "count_relation": count_relation,
+        "samples": samples,
+        "next_search_after": (
+            samples[-1].get("sort")
+            if include_samples and samples
+            else None
+        ),
+    }
+
+
 @api_v1.post("/osd/list-columns")
 async def osd_list_columns_submit(req: Request):
     _, user, resp = _require_admin_auth(req) 
@@ -4874,6 +5989,181 @@ async def timestamp_coverage(req: Request, body: TimestampCoveragePayload):
         "rows": rows,
     }
 
+
+_TIMESTAMP_DISCOVERY_NAME_RE = re.compile(
+    r"(?:^|[._#-])(?:timestamp|datetime|date|time|systemtime|timecreated|created|creation|"
+    r"modified|updated|mtime|ctime|atime|start|end|observed|recorded|lastwritetime)"
+    r"(?:$|[._#-])",
+    re.IGNORECASE,
+)
+_TIMESTAMP_DISCOVERY_ISO_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}(?:[Tt ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:?\d{2})?)?$"
+)
+_TIMESTAMP_DISCOVERY_SKIP_PATHS = {
+    "@timestamp",
+    "timestamp_candidates",
+    "timestamp_desc",
+    "event_summary",
+}
+
+
+def _timestamp_value_looks_valid(value: Any) -> bool:
+    if isinstance(value, bool) or value is None:
+        return False
+
+    if isinstance(value, (int, float)):
+        number = float(value)
+        return (
+            315532800 <= number <= 4102444800
+            or 315532800000 <= number <= 4102444800000
+            or 315532800000000 <= number <= 4102444800000000
+        )
+
+    if not isinstance(value, str):
+        return False
+
+    raw = value.strip()
+    if not raw:
+        return False
+
+    if _TIMESTAMP_DISCOVERY_ISO_RE.fullmatch(raw):
+        return True
+
+    if re.fullmatch(r"\d{10}|\d{13}|\d{16}", raw):
+        try:
+            return _timestamp_value_looks_valid(int(raw))
+        except ValueError:
+            return False
+
+    return False
+
+
+def _timestamp_candidate_score(path: str) -> int:
+    lowered = path.lower()
+    leaf = lowered.rsplit(".", 1)[-1]
+
+    if lowered in _TIMESTAMP_DISCOVERY_SKIP_PATHS:
+        return -1
+
+    if lowered.startswith("timestamp_") or leaf.endswith("_raw_type"):
+        return -1
+
+    exact_scores = {
+        "systemtime": 140,
+        "timestamp": 135,
+        "datetime": 130,
+        "timecreated": 125,
+        "lastwritetime": 120,
+        "created_at": 115,
+        "updated_at": 110,
+        "eventtime": 105,
+        "event_time": 105,
+        "mtime": 100,
+        "ctime": 95,
+        "atime": 90,
+        "date": 80,
+        "time": 70,
+    }
+
+    score = exact_scores.get(leaf, 0)
+
+    if "timecreated" in lowered:
+        score = max(score, 125)
+    if "systemtime" in lowered:
+        score = max(score, 140)
+    if "timestamp" in lowered:
+        score = max(score, 130)
+    if "datetime" in lowered:
+        score = max(score, 125)
+
+    return score if score > 0 or _TIMESTAMP_DISCOVERY_NAME_RE.search(lowered) else -1
+
+
+def _discover_timestamp_candidates_from_source(source: Any) -> List[str]:
+    discovered: Dict[str, int] = {}
+    nodes_seen = 0
+
+    def walk(value: Any, path: List[str], depth: int) -> None:
+        nonlocal nodes_seen
+
+        if depth > 20 or nodes_seen >= 50000:
+            return
+
+        nodes_seen += 1
+
+        if isinstance(value, dict):
+            for key, child in value.items():
+                key_text = str(key or "").strip()
+                if not key_text:
+                    continue
+
+                child_path = path + [key_text]
+                dotted = ".".join(child_path)
+                lowered = dotted.lower()
+
+                if (
+                    lowered.startswith("event.original")
+                    or lowered.startswith("event.blobs")
+                    or lowered.startswith("recursive_ir.security_analytics")
+                ):
+                    continue
+
+                walk(child, child_path, depth + 1)
+            return
+
+        if isinstance(value, list):
+            for child in value[:8]:
+                walk(child, path, depth + 1)
+            return
+
+        if not path or not _timestamp_value_looks_valid(value):
+            return
+
+        dotted = ".".join(path)
+        score = _timestamp_candidate_score(dotted)
+        if score < 0:
+            return
+
+        previous = discovered.get(dotted)
+        if previous is None or score > previous:
+            discovered[dotted] = score
+
+    walk(source, [], 0)
+
+    return [
+        path
+        for path, _ in sorted(
+            discovered.items(),
+            key=lambda item: (-item[1], item[0].lower()),
+        )
+    ]
+
+
+def _timestamp_candidates_from_source(source: Any) -> List[str]:
+    if not isinstance(source, dict):
+        return []
+
+    candidates: List[str] = []
+    seen = set()
+
+    raw_candidates = source.get("timestamp_candidates") or []
+    if isinstance(raw_candidates, list):
+        for item in raw_candidates:
+            field = str(item or "").strip()
+            if not field or field in seen:
+                continue
+            seen.add(field)
+            candidates.append(field)
+
+    for field in _discover_timestamp_candidates_from_source(source):
+        if field in seen:
+            continue
+        seen.add(field)
+        candidates.append(field)
+
+    return candidates
+
+
 @api_v1.post("/timestamp/candidates-for-view")
 async def timestamp_candidates_for_view(req: Request, body: TimestampCandidatesForViewPayload):
     _, user, resp = _require_auth(req)
@@ -4890,7 +6180,7 @@ async def timestamp_candidates_for_view(req: Request, body: TimestampCandidatesF
         return JSONResponse({"ok": False, "error": missing}, status_code=500)
 
     body_json = {
-        "size": 1,
+        "size": TIMESTAMP_CANDIDATE_SAMPLE_SIZE,
         "_source": True,
         "query": {
             "bool": {
@@ -4898,11 +6188,6 @@ async def timestamp_candidates_for_view(req: Request, body: TimestampCandidatesF
                     {
                         "term": {
                             "source_type": source_type
-                        }
-                    },
-                    {
-                        "exists": {
-                            "field": "timestamp_candidates"
                         }
                     }
                 ]
@@ -4956,16 +6241,14 @@ async def timestamp_candidates_for_view(req: Request, body: TimestampCandidatesF
 
     hit = hits[0]
     src = hit.get("_source") or {}
-    raw_candidates = src.get("timestamp_candidates") or []
     candidates: List[str] = []
     seen = set()
 
-    if isinstance(raw_candidates, list):
-        for item in raw_candidates:
-            field = str(item or "").strip()
-            if not field or field in seen:
+    for candidate_hit in hits:
+        candidate_src = candidate_hit.get("_source") or {}
+        for field in _timestamp_candidates_from_source(candidate_src):
+            if field in seen:
                 continue
-
             seen.add(field)
             candidates.append(field)
 
@@ -5177,6 +6460,7 @@ async def timestamp_fallback_samples(req: Request, body: TimestampFallbackSample
             "timestamp": src.get("@timestamp"),
             "timestamp_desc": src.get("timestamp_desc"),
             "event_summary": src.get("event_summary"),
+            "candidates": _timestamp_candidates_from_source(src),
             "source": src,
         })
 
@@ -6248,34 +7532,6 @@ def _flatten_template_fields(properties, prefix="", out=None):
     return out
 
 
-def _load_component_template_fields(template_name):
-    url = f"{OS_HOST.rstrip('/')}/_component_template/{template_name}"
-
-    r = requests.get(
-        url,
-        auth=(OS_USER, OS_PASS),
-        timeout=30,
-        verify=_os_verify_param(),
-    )
-
-    if r.status_code != 200:
-        return {}
-
-    try:
-        data = r.json() or {}
-    except Exception:
-        return {}
-
-    templates = data.get("component_templates") or []
-    if not templates:
-        return {}
-
-    component = ((templates[0].get("component_template") or {}).get("template") or {})
-    mappings = component.get("mappings") or {}
-    properties = mappings.get("properties") or {}
-
-    return _flatten_template_fields(properties)
-
 def _extract_dlq_reason_field_preview(reason, field):
     if not isinstance(reason, str) or not field:
         return None
@@ -6355,224 +7611,53 @@ def _extract_dlq_reason_field_preview(reason, field):
     value = reason[start:i].strip()
     return value[:4096] if value else None
 
-@api_v1.get("/field-mappings/ingestion-errors")
+@api_v1.post("/field-mappings/ingestion-errors")
 async def field_mappings_ingestion_errors(req: Request):
     _, user, resp = _require_admin_auth(req)
     if resp:
         return resp
 
-    missing = _os_ready()
-    if missing:
-        return JSONResponse({"ok": False, "error": missing}, status_code=500)
-
-    ecs_template_fields = _load_component_template_fields("ecs-component")
-
-    body_json = {
-        "size": 0,
-        "track_total_hits": False,
-        "query": {
-            "bool": {
-                "filter": [
-                    {"exists": {"field": "dlq.error_field"}}
-                ]
-            }
-        },
-        "aggs": {
-            "by_source_and_field": {
-                "composite": {
-                    "size": 100,
-                    "sources": [
-                        {
-                            "orig_source_type": {
-                                "terms": {
-                                    "field": "dlq.orig_source_type",
-                                    "missing_bucket": True
-                                }
-                            }
-                        },
-                        {
-                            "error_field": {
-                                "terms": {
-                                    "field": "dlq.error_field",
-                                    "missing_bucket": False
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-    }
-
-    failed_url = f"{OS_HOST.rstrip('/')}/ingestion-error-*/_search?ignore_unavailable=true&allow_no_indices=true"
-    successful_url = f"{OS_HOST.rstrip('/')}/all-json/_count?ignore_unavailable=true&allow_no_indices=true"
-    failed_count_url = f"{OS_HOST.rstrip('/')}/ingestion-error-*/_count?ignore_unavailable=true&allow_no_indices=true"
-
+    created_at = int(time.time())
+    payload_json = "{}"
 
     try:
-        r = requests.post(
-            failed_url,
-            auth=(OS_USER, OS_PASS),
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(body_json, separators=(",", ":")),
-            timeout=30,
-            verify=_os_verify_param(),
-        )
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": f"opensearch request failed: {e}"}, status_code=500)
-
-    if r.status_code != 200:
-        try:
-            err = r.json()
-        except Exception:
-            err = r.text
-
+        async with aiosqlite.connect(
+            DB_PATH,
+            timeout=DB_TIMEOUT_SECONDS,
+        ) as db:
+            await db.execute("PRAGMA busy_timeout = 30000")
+            cur = await db.execute(
+                """
+                INSERT INTO jobs (
+                    created_at,
+                    created_by,
+                    status,
+                    action,
+                    payload_json
+                )
+                VALUES (?, ?, 'queued', 'ingestion_errors_summary', ?)
+                """,
+                (
+                    created_at,
+                    user,
+                    payload_json,
+                ),
+            )
+            await db.commit()
+            job_id = cur.lastrowid
+    except aiosqlite.Error as e:
         return JSONResponse(
             {
                 "ok": False,
-                "status": r.status_code,
-                "error": err,
+                "error": f"failed to enqueue ingestion errors summary: {e}",
             },
             status_code=500,
         )
 
-    successful_body_json = {
-        "query": {
-            "bool": {
-                "must_not": [
-                    {
-                        "wildcard": {
-                            "_index": "ingestion-error-*"
-                        }
-                    },
-                    {
-                        "wildcard": {
-                            "_index": "*-manifest-*"
-                        }
-                    },
-                    {
-                        "term": {
-                            "source_type": "ingestion-error"
-                        }
-                    },
-                    {
-                        "term": {
-                            "_dfir_dummy": True
-                        }
-                    },
-
-                ]
-            }
-        }
+    return {
+        "ok": True,
+        "job_id": job_id,
     }
-
-    try:
-        sr = requests.post(
-            successful_url,
-            auth=(OS_USER, OS_PASS),
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(successful_body_json, separators=(",", ":")),
-            timeout=30,
-            verify=_os_verify_param(),
-        )
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": f"opensearch count request failed: {e}"}, status_code=500)
-
-    successful_events = 0
-    if sr.status_code == 200:
-        try:
-            successful_events = int((sr.json() or {}).get("count") or 0)
-        except Exception:
-            successful_events = 0
-
-    try:
-        j = r.json()
-
-        if "error" in j:
-            return JSONResponse(
-                {
-                    "ok": False,
-                    "error": j["error"],
-                },
-                status_code=500,
-            )
-
-        total = 0
-        try:
-            cr = requests.post(
-                failed_count_url,
-                auth=(OS_USER, OS_PASS),
-                headers={"Content-Type": "application/json"},
-                data=json.dumps(
-                    {
-                        "query": {
-                            "bool": {
-                                "filter": [
-                                    {"exists": {"field": "dlq.error_field"}}
-                                ]
-                            }
-                        }
-                    },
-                    separators=(",", ":"),
-                ),
-                timeout=15,
-                verify=_os_verify_param(),
-            )
-            if cr.status_code == 200:
-                total = int((cr.json() or {}).get("count") or 0)
-        except Exception:
-            total = 0
-
-        buckets = ((((j.get("aggregations") or {}).get("by_source_and_field") or {}).get("buckets")) or [])
-        rows = []
-
-        for bucket in buckets:
-            key = bucket.get("key") or {}
-            field = str(key.get("error_field") or "")
-            source_type = str(key.get("orig_source_type") or "unknown")
-
-            if not field:
-                continue
-
-            template_owned = field in ecs_template_fields
-            template_type = ecs_template_fields.get(field)
-
-            rows.append({
-                "error_field": field,
-                "count": int(bucket.get("doc_count") or 0),
-                "error_type": "",
-                "orig_source_type": source_type,
-                "affected_indexes": 0,
-                "template_owned": template_owned,
-                "template_type": template_type,
-                "recovery_hint": (
-                    "reload_artefacts"
-                    if template_owned
-                    else "reset_index_may_be_required"
-                ),
-            })
-
-        rows.sort(key=lambda row: int(row.get("count") or 0), reverse=True)
-
-        total_events = successful_events + total
-        failure_rate = (total / total_events * 100.0) if total_events > 0 else 0.0
-        success_rate = (successful_events / total_events * 100.0) if total_events > 0 else 100.0    
-    
-        return {
-            "ok": True,
-            "total": total,
-            "failed_events": total,
-            "successful_events": successful_events,
-            "total_events": total_events,
-            "failure_rate": failure_rate,
-            "success_rate": success_rate,
-            "rows": rows,
-        }
-
-    except Exception:
-        import traceback
-        traceback.print_exc()
-        raise
 
 @api_v1.get("/field-mappings/ingestion-errors/details")
 async def field_mappings_ingestion_error_details(req: Request):

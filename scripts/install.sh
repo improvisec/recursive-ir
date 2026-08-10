@@ -92,6 +92,15 @@ fix_opensearch_cert_permissions() {
   fi
 }
 
+fix_recursive_ir_auth_permissions() {
+  install -d -o root -g recursive -m 2770 "${RI_ETC_BASE}/auth"
+
+  if [[ -f "${RI_ETC_BASE}/auth/auth.db" ]]; then
+    chown root:recursive "${RI_ETC_BASE}/auth/auth.db"
+    chmod 0660 "${RI_ETC_BASE}/auth/auth.db"
+  fi
+}
+
 
 detect_lan_ip() {
   local ipaddr
@@ -516,6 +525,15 @@ plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access
 EOF
 fi
 
+if ! grep -qE '^[[:space:]]*plugins\.security\.authcz\.rest_impersonation_user:' /etc/opensearch/opensearch.yml; then
+  cat >> /etc/opensearch/opensearch.yml <<'EOF'
+
+plugins.security.authcz.rest_impersonation_user:
+  admin:
+    - "*"
+EOF
+fi
+
 # -------------------------
 # Normalize OpenSearch runtime dirs (avoid permission drift across reruns)
 # -------------------------
@@ -565,6 +583,12 @@ OPENSEARCH_JAVA_HOME=/usr/share/opensearch/jdk "${OS_SEC_TOOLS}" \
 # =========================
 section "Configure OpenSearch Dashboards to use ${OS_URL_LOCAL} + CA"
 DASH_YML="/etc/opensearch-dashboards/opensearch_dashboards.yml"
+
+if grep -q '^opensearch.requestHeadersWhitelist:' "${DASH_YML}"; then
+  sed -i 's/^opensearch.requestHeadersWhitelist:.*/opensearch.requestHeadersWhitelist: [authorization, securitytenant, opendistro_security_impersonate_as]/' "${DASH_YML}"
+else
+  printf '\nopensearch.requestHeadersWhitelist: [authorization, securitytenant, opendistro_security_impersonate_as]\n' >> "${DASH_YML}"
+fi
 
 # Ensure OpenSearch Dashboards trusts the Recursive-IR CA
 if ! grep -q "Recursive-IR Dashboards block" "${DASH_YML}"; then
@@ -796,6 +820,11 @@ sed -i \
   -e "s|^OSD_HOST_LAN=.*|OSD_HOST_LAN=\"http://${LAN_IP}\"|" \
   "${RI_CONF_ENV}"
 
+section "Bootstrap Recursive-IR OpenSearch security roles"
+
+/usr/local/bin/dfir os security-bootstrap
+fix_recursive_ir_auth_permissions
+
 systemctl daemon-reload
 systemctl restart dfir-worker 2>/dev/null || true
 
@@ -904,6 +933,12 @@ if [[ "${OSD_READY}" != "1" ]]; then
 fi
 
 echo "OpenSearch Dashboards API is ready. Pushing Recursive-IR templates and settings..."
+
+install -d -o dfir -g recursive -m 2770 /run/recursive-ir
+cat >/etc/tmpfiles.d/recursive-ir.conf <<'EOF'
+d /run/recursive-ir 2770 dfir recursive -
+EOF
+systemd-tmpfiles --create /etc/tmpfiles.d/recursive-ir.conf
 
 /usr/local/bin/dfir os templates-push
 /usr/local/bin/dfir osd patterns-push

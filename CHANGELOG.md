@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-10
+
+### v0.10.4
+
+- Added Detector Field Mapping panel in the homepage to automatically match detector log types to existing source types and provide field matching statistics.
+- Detector configuration page enables mapping of fields between Detector log types and the fields found in the indexed data.
+- Security Analytics Detector findings are now viewable under security-analytics-findings-* data view in Discover app.
+- Rules triggered and source event are also linked in each findings event with clickable links to view both Sigma rule and the converted OpenSearch query side by side.
+
 ## 2026-07-09
 
 ### v0.10.3

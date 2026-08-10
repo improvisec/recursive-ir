@@ -1,7 +1,7 @@
 {
   "index_patterns": ["hayabusajson-*"] ,
   "priority": 500,
-  "composed_of": ["ecs-component", "enrichment-component"],
+  "composed_of": ["recursive-ir-component", "enrichment-component"],
   "template": {
     "settings": {
       "index.query.default_field": ["event.blob_preview.*"],
@@ -25,13 +25,6 @@
     "mappings": {
       "dynamic": true,
       "properties": {
-        "@timestamp": { "type": "date" },
-        "case_id":     { "type": "keyword" },
-        "document_id":     { "type": "keyword" },
-        "source_type": { "type": "keyword" },
-        "sa_unmapped": { "type": "keyword" },
-        "host_ip":     { "type": "ip" },
-
         "event": {
           "properties": {
             "blobs": { "type": "object", "enabled": false },
@@ -40,19 +33,12 @@
           }
         },
 
-        "host": {
-          "properties": {
-            "name": { "type": "keyword" },
-            "ip":   { "type": "ip" }
-          }
-        },
         "file": {
           "properties": {
             "path": {
               "type": "keyword",
               "fields": {
-                "parts": { "type": "text", "analyzer": "path_hierarchy_an" },
-                "wc":    { "type": "wildcard" }
+                "wc": { "type": "wildcard" }
               }
             }
           }
@@ -64,8 +50,7 @@
                 "path": {
                   "type": "keyword",
                   "fields": {
-                    "parts": { "type": "text", "analyzer": "path_hierarchy_an" },
-                    "wc":    { "type": "wildcard" }
+                    "wc": { "type": "wildcard" }
                   }
                 },
                 "parent1": { "type": "keyword", "ignore_above": 1024 },

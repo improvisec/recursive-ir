@@ -1,0 +1,24 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+# ------------------------------------------------------------------
+[Unit]
+Description=Run Recursive-IR Security Analytics findings collector periodically
+
+[Timer]
+# First collection shortly after boot.
+OnBootSec=20s
+
+# Run again 10 seconds after the previous collector invocation finishes.
+# This avoids overlapping collectors during large historical replays.
+OnUnitInactiveSec=10s
+
+# Do not replay missed collection cycles after downtime. The collector's
+# durable checkpoint will catch up from native findings on the next run.
+Persistent=false
+
+Unit=dfir-detector.service
+
+[Install]
+WantedBy=timers.target

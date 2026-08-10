@@ -55,3 +55,8 @@ types:
     default_columns:
   csv-headerlessjson:
     default_columns:
+  security-analytics-findings:
+    default_columns:
+      - rules.name
+      - findings.severity
+      - rules.tags

@@ -12,6 +12,8 @@ The platform offers full control over data being analysed with facilities to res
 
 Artefacts can be reloaded or re-parsed and reloaded easily enabling users to perform modifications such as adding enrichments or mutating fields if needed, a feature which isn't commonly available in traditional SIEMs. 
 
+Incident responders can use more than 2200 Sigma rules that ship with OpenSearch's Security Analytics plugin to perform quick triaging of the most common log types. Recursive-IR offers a convenient interface to enable the creation of Security Analytics detectors by automatically matching fields used in detector rules into those that are present in the ingested data using calculated confidence scores. Once a Security Analytics Detector is created, Recursive-IR performs a complete scan of ingested data to identify potential threats.
+
 # Table of Contents
 * [1. Introduction](#introduction)
 * [2. Features](#features)
@@ -34,6 +36,7 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
     * [4.15 Adding Geo-location Information](#geo-enriching)
     * [4.16 Pivoting From an Event](#pivoting-event)
     * [4.17 The Investigation Pivot Tree](#pivot-tree)
+    * [4.18 Security Analytics Detector](#detector)
 * [5. Directory Layout](#directory-layout)
 * [6. Systemd Units](#systemd-units)
 * [7. Troubleshooting](#troubleshooting)
@@ -78,10 +81,11 @@ Artefacts can be reloaded or re-parsed and reloaded easily enabling users to per
 * Intuitive user interface for event enrichments, marking indicators of compromise, and pivoting during artefacts analysis. All searches performed are automatically saved in a "pivot tree".
 * Enrich each event with geo-location information. Recursive-IR uses its own MMDB-format IP Geolocation database generated from ipverse data at https://github.com/ipverse.
 
-## 2.6 Sigma Rules Support
+## 2.6 Threat Detection and Triage Using Sigma Rules 
 
-* Built-in support for sigma detection rules. Users can use Security Analytics plugin of OpenSearch Dashboards which comes with a number of detection rules for different source types, and create or import custom rules.
-
+* Interface to allow easier mapping of fields for use in Security Analytics detector creation 
+* Performs full historical scan of ingested artefacts
+* Security Analytics findings are viewable in Discover app along with other ingested artefacts as part of the super timeline.
 
 ---
 <a id="quickstart"></a>
@@ -669,6 +673,51 @@ Hovering over to the left edge of the UI will bring out the Investigation tree. 
 ![pivot_tree](assets/images/pivot_tree.png)
 
 
+
+---
+<a id="detector"></a>
+## 4.18 Security Analytics Detector
+
+Security Analytics is an OpenSearch/OpenSearch Dashboard plugin that ships with a number of Sigma rules that can be used to detect security threats from the ingested events. The plugin converts these sigma rules (grouped into specific log types) into OpenSearch queries and a periodic search is performed on the indexed data. Once a matching event is found, a finding is generated and a configured alert can be triggered. 
+
+Creating a detector involves selecting the log type such as "Microsoft Windows" that matches the artefacts that were ingested, and mapping the fields used in the sigma rules associated with the log type into those found in the ingested artefacts. This is a tedious process at present since each field has to be mapped one by one unless the field used in the rules are already present in the indexed data.
+
+
+<img src="assets/images/osd-field-mappings.png"/>
+
+
+With Recursive-IR, fields are automatically matched using various scoring algorithms. The Homepage dashboard displays the Detector Field Mapping widget that shows which log type was matched to an existing source type, how many unique fields were actually used in all the rules, how many were confidently matched, how many were mapped so far, and how many remains unmapped including those were the corresponding rules were disabled.
+
+<img src="assets/images/detector-field-mapping.png" width="60%" />
+
+Clicking the View Details button in the widget or the Detectors button on the left panel menu will open up the Security Analytics Detector Configuration page where the source type can be selected and field mappings can be inspected and configured.
+
+<img src="assets/images/sa-field-mappings.png" />
+
+Those matched with high confidence can then be mapped with a click of a button ("Accept All"), while those with lower confidence can be reviewed manually with the ability to inspect the actual field values before accepting a chosen mapping. 
+
+<img src="assets/images/sa-field-review.png"/>
+
+Fields can either be mapped to another field such as winlog.channel mapped into Event.EventData.Channel (which creates an alias under the hood), or the latter can be copied into the former which essentially creates a new field (i.e., winlog.channel) in the ingested events. In the screenshot above, the destination.port field can be created so it matches that exact field used in the rules by selecting and coalescing (using the copy button) both Event.EventData.DestinationPort and Event.EventData.DestPort. Events already ingested have to be reloaded (using case artefacts reload) in order for the new field to appear in the ingested data. 
+
+Those without any matching fields or matched but with low confidence can be resolved by completely disabling the rules that depend on them either individually or with a click of a button ("Disable All Rules").
+
+<img src="assets/images/sa-disable-rules.png"/>
+
+
+Once the detector is created, reloading the case artefacts will trigger a full scan and the resulting findings will be viewable under the security-analytics-findings-* data view in Discover app. Selecting "all-json" data view will line the findings up along with the original events that triggered the findings so they can be inspected side by side.
+
+
+<img src="assets/images/sa-findings.png"/>
+
+
+A sigma rule that triggered a finding can be inspected using the "View Sigma rule" link in the rules.id field of an event.
+
+<img src="assets/images/view-sigma-rule.png"/>
+
+Each sigma rule is shown along with the converted OpenSearch query which allows users to determine if the finding is true or false positive based on the rule's logic.
+
+<img src="assets/images/sigma-to-opensearch.png"/>
 
 ---
 <a id="directory-layout"></a>

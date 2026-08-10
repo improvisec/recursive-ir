@@ -1,0 +1,33 @@
+# ------------------------------------------------------------------
+# Recursive-IR configuration file
+# Copyright (c) 2026 Mark Jayson Alvarez
+# Licensed under the Recursive-IR License
+#
+# Built-in input for Security Analytics finding projections.
+# ------------------------------------------------------------------
+
+- type: filestream
+  id: security-analytics-findings-jsonl
+  enabled: true
+
+  paths:
+    - /var/log/recursive-ir/cases/*/security-analytics-findings/**/*.jsonl
+
+  include_files: ['\.jsonl$']
+
+  exclude_files:
+    - '\.tmp'
+    - '~$'
+
+  fields:
+    source_type: security-analytics-findings
+  fields_under_root: true
+
+  ignore_older: 0
+
+  processors:
+    - decode_json_fields:
+        fields: ["message"]
+        target: ""
+        overwrite_keys: true
+        add_error_key: true

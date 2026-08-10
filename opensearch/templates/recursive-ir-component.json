@@ -1,0 +1,53 @@
+{
+  "template": {
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "case_id": {
+          "type": "keyword"
+        },
+        "document_id": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "source_type": {
+          "type": "keyword"
+        },
+        "sa_unmapped": {
+          "type": "keyword"
+        },
+        "host_ip": {
+          "type": "ip"
+        },
+        "customer_id": {
+          "type": "keyword"
+        },
+        "customer_name": {
+          "type": "keyword"
+        },
+        "timezones": {
+          "type": "keyword"
+        },
+        "timestamp_desc": {
+          "type": "keyword"
+        },
+        "event_summary": {
+          "type": "match_only_text"
+        },
+        "Add_Enrichment": {
+          "type": "keyword",
+          "ignore_above": 2048
+        }
+      }
+    }
+  },
+  "_meta": {
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "description": "Shared Recursive-IR platform fields"
+  },
+  "version": 1
+}

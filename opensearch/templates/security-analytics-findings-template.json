@@ -1,0 +1,156 @@
+{
+  "index_patterns": [
+    "security-analytics-findings-*"
+  ],
+  "priority": 300,
+  "template": {
+    "settings": {
+      "index.number_of_shards": 1,
+      "index.number_of_replicas": 0,
+      "index.codec": "best_compression"
+    },
+    "mappings": {
+      "dynamic": true,
+      "date_detection": false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "@version": {
+          "type": "keyword"
+        },
+        "scan_id": {
+          "type": "keyword"
+        },
+        "document_id": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "case_id": {
+          "type": "keyword"
+        },
+        "host_ip": {
+          "type": "ip",
+          "ignore_malformed": true
+        },
+        "source_type": {
+          "type": "keyword"
+        },
+        "event_summary": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 4096
+            }
+          }
+        },
+        "detector": {
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "type": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword",
+              "ignore_above": 1024
+            }
+          }
+        },
+        "finding": {
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "native_index": {
+              "type": "keyword"
+            },
+            "replay_index": {
+              "type": "keyword"
+            },
+            "monitor_id": {
+              "type": "keyword"
+            },
+            "monitor_name": {
+              "type": "keyword",
+              "ignore_above": 1024
+            },
+            "detected_at": {
+              "type": "date",
+              "format": "strict_date_optional_time||epoch_millis"
+            },
+            "execution_id": {
+              "type": "keyword"
+            },
+            "severity": {
+              "type": "keyword"
+            },
+            "related_event_count": {
+              "type": "integer"
+            },
+            "rule_count": {
+              "type": "integer"
+            }
+          }
+        },
+        "rules": {
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "name": {
+              "type": "keyword",
+              "ignore_above": 1024
+            },
+            "query": {
+              "type": "wildcard"
+            },
+            "severity": {
+              "type": "keyword"
+            },
+            "tags": {
+              "type": "keyword"
+            }
+          }
+        },
+        "related_events": {
+          "properties": {
+            "document_id": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "source_type": {
+              "type": "keyword"
+            },
+            "timestamp": {
+              "type": "date"
+            }
+          }
+        },
+        "primary_event_document_id": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "Review_Finding": {
+          "type": "keyword",
+          "index": false,
+          "doc_values": false
+        }
+      }
+    },
+    "aliases": {
+      "all-json": {},
+      "all": {}
+    }
+  },
+  "_meta": {
+    "project": "Recursive-IR",
+    "copyright": "Copyright (c) 2026 Mark Jayson Alvarez",
+    "license": "Recursive-IR License",
+    "description": "Lean, case-scoped Security Analytics findings containing detection context and authoritative event references",
+    "version": 3
+  },
+  "version": 3
+}

@@ -1,22 +1,25 @@
 # Recursive-IR configuration file
 # Copyright (c) 2026 Mark Jayson Alvarez
 # Licensed under the Recursive-IR License
-#
+# 
 # Recursive-IR field mappings
 # Each top-level key corresponds to an index pattern name,
 # e.g. evtxjson, mftjson, hayabusajson, dissect_evtxjson.
-# Sections under each key rename/copy/drop/derive/set_if_present/stringify/store_only
+# Sections under each key rename/copy/coalesce/drop/derive/set_if_present/stringify/store_only
 # shall control the behavior in the Logstash field-mappings logic.
 
 # ----------------------------------------------------------------
 # <source_type> (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
   # rename:
-  #   # MOVE a field from one name to another (source → target)
+  #   # MOVE a field from one name to another (source â<86><92> target)
   #   # src_ip: source.ip
   # copy:
   #   # DUPLICATE a field into one or more targets
   #   # event_id: [ event.code, pattern.event_id ]
+  # coalesce:
+  #   # COPY one agreed value from multiple possible sources into one target
+  #   # destination.port: [ Event.EventData.DestinationPort, Event.EventData.DstPort ]
   # set_if_present:
   #   # Only copy when source field exists and is non-empty
   #   # username: [ user.name ]
@@ -25,7 +28,7 @@
   #   # - pattern.raw_message
   # derive:
   #   # Derive the base name or parent paths from a given field. Useful you want to filter by parent path or file name when searching for events.
-  #   # Operator → input fields. Example (basename/parentdirs helpers):
+  #   # Operator â<86><92> input fields. Example (basename/parentdirs helpers):
   #   # The example below will produce file.parent1, file.parent2, file.parent3 from file.path as well as the file name (e.g., C:\Users\Public\malware.exe will result in file.name: malware.exe)
   #   # basename:
   #   #   - file.path
@@ -59,7 +62,6 @@
     #   event.blob_hash["Details_ScriptBlock"]
     #   event.blobs["Details_ScriptBlock"]        (full, _source-only)
 
-
 # ----------------------------------------------------------------
 # evtxjson (auto-generated skeleton by dfir parser new)
 # ----------------------------------------------------------------
@@ -67,6 +69,7 @@ evtxjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -95,6 +98,8 @@ dissect-evtxjson:
 
   copy: {}
 
+  coalesce: {}
+
   set_if_present: {}
 
   drop: []
@@ -120,6 +125,7 @@ hayabusajson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -139,6 +145,7 @@ mftjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -158,6 +165,7 @@ plasojson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -177,6 +185,7 @@ json-arrayjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -196,6 +205,7 @@ json-passthroughjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -215,6 +225,7 @@ nginxjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -234,6 +245,7 @@ cloudtrailjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -253,6 +265,7 @@ csvjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
@@ -272,6 +285,7 @@ csv-headerlessjson:
   # rename:
   rename: {}
   copy: {}
+  coalesce: {}
   set_if_present: {}
   drop: []
   derive:
