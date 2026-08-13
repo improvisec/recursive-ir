@@ -66,6 +66,7 @@ INGESTION_SERVICE_NAMES = [
     "filebeat",
     "dfir-parser.timer",
     "dfir-watcher",
+    "dfir-detector.timer",
 ]
 
 def _os_verify_param():

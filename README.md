@@ -229,7 +229,7 @@ The first step in using the platform is adding new parser definitions. By defaul
 
 <img src="assets/images/sample_parsers.png" width="40%"/>
 
-Patterns specified for each parser entry are used to determine if the dropped artefacts or artefact folders will be processed by the corresponding parser binary. This allows processing the same artefact using multiple parsers such as evtx_dump and hayabusa for parsing .evtx files. 
+Patterns specified for each parser entry are used to determine if the dropped artefacts or artefact folders will be processed by the corresponding parser program. This allows processing the same artefact using multiple parsers such as evtx_dump and hayabusa for parsing .evtx files. 
 
 For example, the dissect framework uses a separate program called rdump to parse the output of target-query command and produce json files. By creating a script wrapper as shown below, one can combine target-query and rdump into a single executable that can be configured in the parser definition for parsing .evtx artefacts from a given raw artefact source. Note that the dissect python scripts used here were installed in "recursive" user's .venv folder. Recursive-IR doesn't normally ship with parser programs (except for a few Apache 2.0-licensed ones). Users should bring their own parsers into the platform.
 
